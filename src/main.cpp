@@ -12,6 +12,8 @@ using namespace std;
 
 int main(const int argc, const char **argv)
 {
+    /* This is a test application that shows how to use MetricsDriver */
+
     // Check for the right number of arguments
     if (argc == 2) {
         Metrics::MetricsDriver driver;

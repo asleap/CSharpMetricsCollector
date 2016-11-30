@@ -1,0 +1,4089 @@
+/* PROLOGUE */
+//%{
+//%}
+
+
+/* DECLARATIONS */
+%require "3.0"
+%language "c++"
+%locations
+%defines
+
+%define lr.type lalr
+%define api.namespace { Metrics }
+%define api.value.type variant
+%define parse.assert
+%define parse.error verbose         /* May sometimes produce incorrect error messages */
+%define parse.trace
+
+%define parser_class_name { CSParser }
+%parse-param { CSScanner &scanner }
+%parse-param { MetricsDriver &driver }
+
+%code top
+{
+#include <iostream>
+#include <cstdlib>
+#include <fstream>
+}
+
+%code requires {
+/* Include for all driver functions */
+#include "../MetricsDriver.hpp"
+
+#undef yylex
+#define yylex scanner.yylex
+
+namespace Metrics {
+    class MetricsDriver;
+    class CSScanner;
+}
+
+/* The following definitions is missing when %locations isn't used */
+# ifndef YY_NULL
+#  if defined __cplusplus && 201103L <= __cplusplus
+#   define YY_NULL nullptr
+#  else
+#   define YY_NULL 0
+#  endif
+# endif
+}
+
+
+/* DECLARATIONS: TOKEN DESCRIPTION */
+// B. Grammar
+//
+// This appendix contains summaries of the lexical and syntactic grammars 
+// found in the main document, and of the grammar extensions for unsafe code. 
+// Grammar productions appear here in the same order that they appear in the main document.
+//
+// B.1 Lexical grammar
+//
+// input:
+//     input-section-opt
+// 
+// input-section:
+//                     input-section-part
+//     input-section   input-section-part
+// 
+// input-section-part:
+//     input-elementsopt   new-line
+//     pp-directive
+// 
+// input-elements:
+//                      input-element
+//     input-elements   input-element
+// 
+// input-element:
+//     whitespace
+//     comment
+//     token
+// 
+// B.1.1 Line terminators
+// 
+// new-line:
+//     Carriage return character (U+000D)
+//     Line feed character (U+000A)
+//     Carriage return character (U+000D) followed by line feed character (U+000A)
+//     Next line character (U+0085)
+//     Line separator character (U+2028)
+//     Paragraph separator character (U+2029)
+// 
+// B.1.2 Comments
+//
+//comment:
+//    single-line-comment
+//    delimited-comment
+//
+// single-line-comment:
+//     '//'   input-characters-opt
+// 
+// input-characters:
+//                        input-character
+//     input-characters   input-character
+// 
+// input-character:
+//     Any Unicode character except a new-line-character
+// 
+// new-line-character:
+//     Carriage return character (U+000D)
+//     Line feed character (U+000A)
+//     Next line character (U+0085)
+//     Line separator character (U+2028)
+//     Paragraph separator character (U+2029)
+// 
+// delimited-comment:
+//     '/*'   delimited-comment-text-opt   asterisks   /
+// 
+// delimited-comment-text:
+//                              delimited-comment-section
+//     delimited-comment-text   delimited-comment-section
+// 
+// delimited-comment-section:
+//     /
+//     asterisks-opt   not-slash-or-asterisk
+// 
+// asterisks:
+//                 *
+//     asterisks   *
+// 
+// not-slash-or-asterisk:
+//     Any Unicode character except / or *
+// 
+// B.1.3 White space
+//
+//whitespace:
+//    Any character with Unicode class Zs
+//    Horizontal tab character (U+0009)
+//    Vertical tab character (U+000B)
+//    Form feed character (U+000C)
+//
+// B.1.4 Tokens
+// 
+// token:
+//     identifier
+//     keyword
+//     integer-literal
+//     real-literal
+//     character-literal
+//     string-literal
+//     operator-or-punctuator
+
+%token INTEGER_LITERAL
+%token REAL_LITERAL
+%token CHARACTER_LITERAL
+%token STRING_LITERAL
+
+// B.1.5 Unicode character escape sequences
+// 
+// unicode-escape-sequence:
+//     \u   hex-digit   hex-digit   hex-digit   hex-digit
+//     \U   hex-digit   hex-digit   hex-digit   hex-digit   hex-digit   hex-digit   hex-digit   hex-digit
+// 
+// B.1.6 Identifiers
+//
+// identifier:
+//    available-identifier
+//    @   identifier-or-keyword
+
+%token IDENTIFIER
+
+%token NAMESPACE_IDENTIFIER
+%token CLASS_IDENTIFIER
+%token STRUCT_IDENTIFIER
+%token INTERFACE_IDENTIFIER
+%token DELEGATE_IDENTIFIER
+%token ENUM_IDENTIFIER
+%token TYPE_PARAMETER_IDENTIFIER
+
+// available-identifier:
+//     An identifier-or-keyword that is not a keyword
+// 
+// identifier-or-keyword:
+//     identifier-start-character   identifier-part-charactersopt
+// 
+// identifier-start-character:
+//     letter-character
+//     _ (the underscore character U+005F)
+// 
+// identifier-part-characters:
+//                                  identifier-part-character
+//     identifier-part-characters   identifier-part-character
+// 
+// identifier-part-character:
+//     letter-character
+//     decimal-digit-character
+//     connecting-character
+//     combining-character
+//     formatting-character
+// 
+// letter-character:
+//     A Unicode character of classes Lu, Ll, Lt, Lm, Lo, or Nl 
+//     A unicode-escape-sequence representing a character of classes Lu, Ll, Lt, Lm, Lo, or Nl
+// 
+// combining-character:
+//     A Unicode character of classes Mn or Mc 
+//     A unicode-escape-sequence representing a character of classes Mn or Mc
+// 
+// decimal-digit-character:
+//     A Unicode character of the class Nd 
+//     A unicode-escape-sequence representing a character of the class Nd
+// 
+// connecting-character:  
+//     A Unicode character of the class Pc
+//     A unicode-escape-sequence representing a character of the class Pc
+// 
+// formatting-character:  
+//     A Unicode character of the class Cf
+//     A unicode-escape-sequence representing a character of the class Cf
+// 
+// B.1.7 Keywords
+//
+//keyword:  one of
+//    abstract	as			base		bool		break
+//    byte		case		catch		char		checked
+//    class		const		continue	decimal		default
+//    delegate	do			double		else		enum
+//    event		explicit	extern		false		finally
+//    fixed		float		for			foreach		goto
+//    if			implicit	in			int			interface
+//    internal	is			lock		long		namespace
+//    new			null		object		operator	out
+//    override	params		private		protected	public
+//    readonly	ref			return		sbyte		sealed
+//    short		sizeof		stackalloc	static		string
+//    struct		switch		this		throw		true
+//    try			typeof		uint		ulong		unchecked
+//    unsafe		ushort		using		virtual		void
+//    volatile	while
+
+%token ABSTRACT
+%token AS
+%token BASE
+%token BOOL
+%token BREAK
+%token BYTE
+%token CASE
+%token CATCH
+%token CHAR
+%token CHECKED
+%token CLASS
+%token CONST		
+%token CONTINUE	
+%token DECIMAL		
+%token DEFAULT
+%token DELEGATE	
+%token DO			
+%token DOUBLE		
+%token ELSE		
+%token ENUM
+%token EVENT		
+%token EXPLICIT	
+%token EXTERN		
+%token FALSE		
+%token FINALLY
+%token FIXED		
+%token FLOAT		
+%token FOR			
+%token FOREACH		
+%token GOTO
+%token IF		
+%token IMPLICIT	
+%token IN			
+%token INT			
+%token INTERFACE
+%token INTERNAL	
+%token IS			
+%token LOCK		
+%token LONG		
+%token NAMESPACE
+%token NEW			
+%token NULL		
+%token OBJECT		
+%token OPERATOR	
+%token OUT
+%token OVERRIDE	
+%token PARAMS		
+%token PRIVATE		
+%token PROTECTED	
+%token PUBLIC
+%token READONLY	
+%token REF			
+%token RETURN		
+%token SBYTE		
+%token SEALED
+%token SHORT		
+%token SIZEOF		
+%token STACKALLOC	
+%token STATIC		
+%token STRING
+%token STRUCT		
+%token SWITCH		
+%token THIS		
+%token THROW		
+%token TRUE
+%token TRY			
+%token TYPEOF		
+%token UINT		
+%token ULONG		
+%token UNCHECKED
+%token UNSAFE		
+%token USHORT		
+%token USING		
+%token VIRTUAL		
+%token VOID
+%token VOLATILE	
+%token WHILE
+%token YIELD
+
+/*
+B.1.8 Literals
+literal:
+boolean-literal
+integer-literal
+real-literal
+character-literal
+string-literal
+null-literal
+boolean-literal:
+true
+false
+integer-literal:
+decimal-integer-literal
+hexadecimal-integer-literal
+decimal-integer-literal:
+decimal-digits   integer-type-suffixopt
+decimal-digits:
+decimal-digit
+decimal-digits   decimal-digit
+decimal-digit:  one of
+0  1  2  3  4  5  6  7  8  9
+integer-type-suffix:  one of
+U  u  L  l  UL  Ul  uL  ul  LU  Lu  lU  lu
+hexadecimal-integer-literal:
+0x   hex-digits   integer-type-suffixopt
+0X   hex-digits   integer-type-suffixopt
+hex-digits:
+hex-digit
+hex-digits   hex-digit
+hex-digit:  one of
+0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F  a  b  c  d  e  f
+real-literal:
+decimal-digits   .   decimal-digits   exponent-partopt   real-type-suffixopt
+.   decimal-digits   exponent-partopt   real-type-suffixopt
+decimal-digits   exponent-part   real-type-suffixopt
+decimal-digits   real-type-suffix
+exponent-part:
+e   signopt   decimal-digits
+E   signopt   decimal-digits
+sign:  one of
++  -
+real-type-suffix:  one of
+F  f  D  d  M  m
+character-literal:
+'   character   '
+character:
+single-character
+simple-escape-sequence
+hexadecimal-escape-sequence
+unicode-escape-sequence
+single-character:
+ Any character except ' (U+0027), \ (U+005C), and new-line-character
+simple-escape-sequence:  one of
+\'  \"  \\  \0  \a  \b  \f  \n  \r  \t  \v
+hexadecimal-escape-sequence:
+\x   hex-digit   hex-digitopt   hex-digitopt   hex-digitopt
+string-literal:
+regular-string-literal
+verbatim-string-literal
+regular-string-literal:
+"   regular-string-literal-charactersopt   "
+regular-string-literal-characters:
+regular-string-literal-character
+regular-string-literal-characters   regular-string-literal-character
+regular-string-literal-character:
+single-regular-string-literal-character
+simple-escape-sequence
+hexadecimal-escape-sequence
+unicode-escape-sequence
+single-regular-string-literal-character:
+Any character except " (U+0022), \ (U+005C), and new-line-character
+verbatim-string-literal:
+@"   verbatim-string-literal-charactersopt   "
+verbatim-string-literal-characters:
+verbatim-string-literal-character
+verbatim-string-literal-characters   verbatim-string-literal-character
+verbatim-string-literal-character:
+single-verbatim-string-literal-character
+quote-escape-sequence
+single-verbatim-string-literal-character:
+any character except "
+quote-escape-sequence:
+""
+null-literal:
+null
+B.1.9 Operators and punctuators
+operator-or-punctuator:  one of
+{		}		[		]		(		)		.		,		:		;
++		-		*		/		%		&		|		^		!		~
+=		<		>		?		??		::		++		--		&&		||
+->		==		!=		<=		>=		+=		-=		*=		/=		%=
+&=		|=		^=		<<		<<=	=>
+right-shift:
+>|>
+right-shift-assignment:
+>|>=
+B.1.10 Pre-processing directives
+pp-directive:
+pp-declaration
+pp-conditional
+pp-line
+pp-diagnostic
+pp-region 
+pp-pragma
+conditional-symbol:
+Any identifier-or-keyword except true or false
+pp-expression:
+whitespaceopt   pp-or-expression   whitespaceopt
+pp-or-expression:
+pp-and-expression
+pp-or-expression   whitespaceopt   ||   whitespaceopt   pp-and-expression
+pp-and-expression:
+pp-equality-expression
+pp-and-expression   whitespaceopt   &&   whitespaceopt   pp-equality-expression
+pp-equality-expression:
+pp-unary-expression
+pp-equality-expression   whitespaceopt   ==   whitespaceopt   pp-unary-expression
+pp-equality-expression   whitespaceopt   !=   whitespaceopt   pp-unary-expression
+pp-unary-expression:
+pp-primary-expression
+!   whitespaceopt   pp-unary-expression
+pp-primary-expression:
+true
+false
+conditional-symbol
+(   whitespaceopt   pp-expression   whitespaceopt   )
+pp-declaration:
+whitespaceopt   #   whitespaceopt   define   whitespace   conditional-symbol   pp-new-line
+whitespaceopt   #   whitespaceopt   undef   whitespace   conditional-symbol   pp-new-line
+pp-new-line:
+whitespaceopt   single-line-commentopt   new-line
+pp-conditional:
+pp-if-section   pp-elif-sectionsopt   pp-else-sectionopt   pp-endif
+pp-if-section:
+whitespaceopt   #   whitespaceopt   if   whitespace   pp-expression   pp-new-line   conditional-sectionopt
+pp-elif-sections:
+pp-elif-section
+pp-elif-sections   pp-elif-section
+pp-elif-section:
+whitespaceopt   #   whitespaceopt   elif   whitespace   pp-expression   pp-new-line   conditional-sectionopt
+pp-else-section:
+whitespaceopt   #   whitespaceopt   else   pp-new-line   conditional-sectionopt
+pp-endif:
+whitespaceopt   #   whitespaceopt   endif   pp-new-line
+conditional-section:
+input-section
+skipped-section
+skipped-section:
+skipped-section-part
+skipped-section   skipped-section-part
+skipped-section-part:
+skipped-charactersopt   new-line
+pp-directive
+skipped-characters:
+whitespaceopt   not-number-sign   input-charactersopt
+not-number-sign:
+Any input-character except #
+pp-diagnostic:
+whitespaceopt   #   whitespaceopt   error   pp-message
+whitespaceopt   #   whitespaceopt   warning   pp-message
+pp-message:
+new-line
+whitespace   input-charactersopt   new-line
+pp-region:
+pp-start-region   conditional-sectionopt   pp-end-region
+pp-start-region:
+whitespaceopt   #   whitespaceopt   region   pp-message
+pp-end-region:
+whitespaceopt   #   whitespaceopt   endregion   pp-message
+pp-line:
+whitespaceopt   #   whitespaceopt   line   whitespace   line-indicator   pp-new-line
+line-indicator:
+decimal-digits   whitespace   file-name 
+decimal-digits
+default 
+hidden
+file-name:
+"   file-name-characters   "
+file-name-characters:
+file-name-character
+file-name-characters   file-name-character
+file-name-character:
+Any input-character except "
+pp-pragma:
+whitespaceopt   #   whitespaceopt   pragma   whitespace   pragma-body   pp-new-line
+pragma-body:
+pragma-warning-body
+pragma-warning-body:
+warning   whitespace   warning-action
+warning   whitespace   warning-action   whitespace   warning-list
+warning-action:
+disable
+restore
+warning-list:
+decimal-digits
+warning-list   whitespaceopt   ,   whitespaceopt   decimal-digits
+*/
+
+%token DYNAMIC
+%token VAR
+%token ALIAS
+%token WHERE
+%token PARTIAL
+
+%token DOT
+%token COMMA
+%token COLON
+%token SEMICOLON
+
+%token LPAREN
+%token RPAREN
+%token LBRACKET
+%token RBRACKET
+%token LBRACE
+%token RBRACE
+
+%token DBL_PLUS
+%token DBL_MINUS
+%token DBL_COLON
+%token DBL_LESS
+%token DBL_GREATER
+%token DBL_EQUAL
+%token DBL_AMPERSAND
+%token DBL_VERTICAL
+%token DBL_QUESTION
+
+%token EQUAL
+%token LESS
+%token GREATER
+%token PLUS
+%token MINUS
+%token EXCLAMATION
+%token TILDE
+%token STAR
+%token SLASH
+%token PERCENT
+%token PLUS
+%token MINUS
+%token AMPERSAND
+%token CARET
+%token VERTICAL
+%token QUESTION
+
+%token LESS_EQUAL       // <=
+%token GREATER_EQUAL    // >=
+%token EXCL_EQUAL       // !=
+%token EQUAL_GREATER    // =>
+%token MINUS_GREATER    // ->
+
+%token PLUS_EQUAL         // +=
+%token MINUS_EQUAL        // -=
+%token STAR_EQUAL         // *=
+%token SLASH_EQUAL        // /=
+%token PERCENT_EQUAL      // %=
+%token AMPERSAND_EUAL     // &=
+%token VERTICAL_EQUAL     // |=
+%token CARET_EQUAL        // ^=
+%token DBL_LESS_EQUAL     // <<=
+%token DBL_GREATER_EQUAL  // >>=
+
+%token FROM
+%token IN
+%token LET
+%token WHERE
+%token JOIN
+%token ON
+%token INTO
+%token ORDERBY
+%token ASCENDING
+%token DESCENDING
+%token SELECT
+%token BY
+%token GROUP
+%token EQUALS
+
+%token GET
+%token SET
+%token ADD
+%token REMOVE
+
+%token ASSEMBLY
+%token MODULE
+%token FIELD
+//%token EVENT
+%token METHOD
+%token PARAM
+%token PROPERTY
+//%token RETURN
+%token TYPE
+
+
+%start CompilationUnit
+
+
+/* GRAMMAR RULES */
+%%
+
+// B.2 Syntactic grammar
+// 
+// B.2.1 Basic concepts
+ 
+// namespace-name:
+//     namespace-or-type-name
+
+NamespaceName      : NamespaceOrTypeName
+                   ;
+
+// type-name:
+//     namespace-or-type-name
+
+TypeName           : NamespaceOrTypeName
+                   ;
+
+// namespace-or-type-name:
+//                                  identifier   type-argument-list-opt
+//     namespace-or-type-name   .   identifier   type-argument-list-opt
+//     qualified-alias-member
+
+// Original production:
+//NamespaceOrTypeName:                         IDENTIFIER
+//                   |                         IDENTIFIER TypeArgumentList
+//                   | NamespaceOrTypeName DOT IDENTIFIER
+//                   | NamespaceOrTypeName DOT IDENTIFIER TypeArgumentList
+//                   | QualifiedAliasMember
+//                   ;
+
+// Updated production:
+NamespaceOrTypeName:                         TypeIdentifier
+                   |                         TypeIdentifier TypeArgumentList
+                   | NamespaceOrTypeName DOT TypeIdentifier
+                   | NamespaceOrTypeName DOT TypeIdentifier TypeArgumentList
+                   | QualifiedAliasMember
+                   ;
+				   
+// This production assumes that the name resolution is preformed,
+// and the lexem can distinguish the meaning of the "type name"
+// or "namespace name".				   
+TypeIdentifier     : NAMESPACE_IDENTIFIER
+                   | CLASS_IDENTIFIER
+                   | STRUCT_IDENTIFIER
+                   | INTERFACE_IDENTIFIER
+				   | DELEGATE_IDENTIFIER
+				   | ENUM_IDENTIFIER
+				   | TYPE_PARAMETER_IDENTIFIER
+				   ;
+
+// B.2.2 Types
+
+// type:
+//    value-type
+//    reference-type 
+//    type-parameter
+//
+// B.3 Grammar extensions for unsafe code
+//
+// type:
+// ...
+// pointer-type
+
+// This productiuon serves as an explanation of the meaning of "type" notion;
+// it contains ambiguity, because both 'ValueType' and 'ReferenceType'
+// refer to the same 'TypeName' production.
+// 
+// This is why I have replaced this for a simpler and unambiguous production,
+// see below.
+//Type               : ValueType
+//                   | ReferenceType 
+//                // | IDENTIFIER // TypeParameter
+//				   
+//                   | PointerType
+//				   ;
+
+NonArrayType       : TypeName
+                   | SimpleType
+				   | NullableType
+				   | PointerType
+                   | OBJECT
+                   | DYNAMIC
+                   | STRING
+				   ;
+				   
+Type               : NonArrayType
+ 				   | ArrayType
+				   ;
+
+// value-type:
+//     struct-type
+//     enum-type
+
+//ValueType          : StructType
+//                   | EnumType
+//                   ;
+
+// struct-type:
+//     type-name
+//     simple-type 
+//     nullable-type
+
+//StructType         : TypeName
+//                   | SimpleType 
+//                   | NullableType
+//                   ;
+
+// simple-type:
+//     numeric-type
+//     bool
+
+SimpleType         : NumericType
+                   | BOOL
+				   ;
+
+// numeric-type:
+//     integral-type
+//     floating-point-type
+//     decimal
+
+NumericType        : IntegralType
+                   | FloatingPointType
+				   | DECIMAL
+				   ;
+
+// integral-type:
+//     sbyte
+//     byte
+//     short
+//     ushort
+//     int
+//     uint
+//     long
+//     ulong
+//     char
+
+IntegralType       : SBYTE
+                   | BYTE
+				   | SHORT
+				   | USHORT
+				   | INT
+				   | UINT
+				   | LONG
+				   | ULONG
+				   | CHAR
+				   ;
+
+// floating-point-type:
+//     float
+//     double
+
+FloatingPointType  : FLOAT
+                   | DOUBLE
+				   ;
+
+// nullable-type:
+//     non-nullable-value-type   ?
+//
+// non-nullable-value-type:
+//     type
+
+NullableType       : Type QUESTION
+                   ;
+
+
+// enum-type:
+//     type-name
+
+//EnumType           : TypeName
+//                   ;
+
+// reference-type:
+//     class-type
+//     interface-type
+//     array-type
+//     delegate-type
+
+//ReferenceType      : ClassType
+//                   | InterfaceType
+//                   | ArrayType
+//                   | DelegateType
+//                   ;
+
+// class-type:
+//     type-name
+//     object
+//     dynamic
+//     string
+
+//ClassType          : TypeName
+//                   | OBJECT
+//                   | DYNAMIC
+//                   | STRING
+//                   ;
+
+// interface-type:
+//     type-name
+
+//InterfaceType      : TypeName
+//                   ;
+
+// rank-specifiers:
+//     rank-specifier
+//     rank-specifiers   rank-specifier
+
+RankSpecifiers     :                RankSpecifier
+                   | RankSpecifiers RankSpecifier
+				   ;
+
+// rank-specifier:
+//     [   dim-separators-opt   ]
+
+RankSpecifier      : LBRACKET               RBRACKET
+                   | LBRACKET DimSeparators RBRACKET
+				   ;
+
+// dim-separators:
+//                      ,
+//     dim-separators   ,
+
+DimSeparators      :               COMMA
+                   | DimSeparators COMMA
+				   ;
+
+// delegate-type:
+//     type-name
+
+//DelegateType       : TypeName
+//                   ;
+
+// type-argument-list:
+//     <   type-arguments   >
+
+TypeArgumentList   : LESS TypeArguments GREATER
+                   ;
+
+// type-arguments:
+//                          type-argument
+//     type-arguments   ,   type-argument
+//
+// type-argument:
+//     type
+
+TypeArguments      :                     Type
+                   | TypeArguments COMMA Type
+                   ;
+
+// type-parameter:
+//    identifier
+//
+// B.2.3 Variables
+// 
+// variable-reference:
+//     expression
+//
+// B.2.4 Expressions
+// 
+// argument-list:
+//                         argument
+//     argument-list   ,   argument
+
+ArgumentList       :                    Argument
+                   | ArgumentList COMMA Argument
+                   ;
+
+// argument:
+//     argument-name-opt   argument-value
+//
+// argument-name:
+//     identifier   :
+
+Argument           :                  ArgumentValue
+                   | IDENTIFIER COLON ArgumentValue
+                   ;
+
+// argument-value:
+//     expression
+//     ref   variable-reference
+//     out   variable-reference
+//
+// variable-reference:
+//     expression
+
+ArgumentValue      :     Expression
+                   | REF Expression
+                   | OUT Expression
+                   ;
+
+// primary-expression: 
+// primary-no-array-creation-expression
+// array-creation-expression
+
+PrimaryExpression  : PrimaryNoArrayCreationExpression
+                   | ArrayCreationExpression
+				   ;
+				   
+// primary-no-array-creation-expression:
+// literal
+// simple-name
+// parenthesized-expression
+// member-access
+// invocation-expression
+// element-access
+// this-access
+// base-access
+// post-increment-expression
+// post-decrement-expression
+// object-creation-expression
+// delegate-creation-expression
+// anonymous-object-creation-expression
+// typeof-expression
+// checked-expression
+// unchecked-expression 
+// default-value-expression
+// anonymous-method-expression
+//
+// B.3 Grammar extensions for unsafe code
+//
+// primary-no-array-creation-expression:
+// ...
+// pointer-member-access
+// pointer-element-access
+// sizeof-expression
+
+PrimaryNoArrayCreationExpression
+                   : Literal
+				   | SimpleName
+				   | ParenthesizedExpression
+				   | MemberAccess
+				   | InvocationExpression
+				   | ElementAccess
+				   | ThisAccess
+				   | BaseAccess
+				   | PostIncrementExpression
+				   | PostDecrementExpression
+				   | ObjectCreationExpression
+				   | DelegateCreationExpression
+				   | AnonymousObjectCreationExpression
+				   | TypeofExpression
+				   | CheckedExpression
+				   | UncheckedExpression 
+				   | DefaultValueExpression
+				   | AnonymousMethodExpression
+				   
+				   | PointerMemberAccess
+				   | PointerElementAccess
+				   | SizeofExpression
+				   ;
+				   
+Literal            : INTEGER_LITERAL
+                   | REAL_LITERAL
+				   | CHARACTER_LITERAL
+				   | STRING_LITERAL
+				   ;
+
+
+// simple-name:
+// identifier   type-argument-listopt
+
+SimpleName         : IDENTIFIER
+                   | IDENTIFIER TypeArgumentList
+				   ;
+
+// parenthesized-expression:
+// (   expression   )
+
+ParenthesizedExpression
+                   : LPAREN Expression RPAREN
+				   ;
+
+// member-access:
+// primary-expression   .   identifier  type-argument-listopt
+// predefined-type   .   identifier  type-argument-listopt
+// qualified-alias-member   .   identifier
+
+MemberAccess       : PrimaryExpression    DOT IDENTIFIER
+                   | PrimaryExpression    DOT IDENTIFIER TypeArgumentList
+                   | PredefinedType       DOT IDENTIFIER
+				   | PredefinedType       DOT IDENTIFIER TypeArgumentList
+				   | QualifiedAliasMember DOT IDENTIFIER
+				   ;
+
+// predefined-type:  one of
+// bool		byte		char		decimal	double	float		int		long
+// object	sbyte		short		string	uint		ulong		ushort
+
+PredefinedType     : BOOL | BYTE   | CHAR  | DECIMAL | DOUBLE | FLOAT | INT
+                   | LONG | OBJECT | SBYTE | SHORT   | STRING | UINT  | ULONG | USHORT
+				   ;
+
+// invocation-expression:
+// primary-expression   (   argument-listopt   )
+
+InvocationExpression
+                   : PrimaryExpression LPAREN              RPAREN
+				   | PrimaryExpression LPAREN ArgumentList RPAREN
+				   ;
+
+// element-access:
+// primary-no-array-creation-expression   [   argument-list   ]
+
+ElementAccess      : PrimaryNoArrayCreationExpression LBRACKET ArgumentList RBRACKET
+                   ;
+
+// this-access:
+// this
+
+ThisAccess         : THIS
+                   ;
+
+// base-access:
+// base   .   identifier
+// base   [   argument-list   ]
+
+BaseAccess         : BASE DOT IDENTIFIER
+                   | BASE LBRACKET ArgumentList RBRACKET
+				   ;
+
+// post-increment-expression:
+// primary-expression   ++
+
+PostIncrementExpression
+                   : PrimaryExpression DBL_PLUS
+				   ;
+
+// post-decrement-expression:
+// primary-expression   --
+
+PostDecrementExpression
+                   : PrimaryExpression DBL_MINUS
+				   ;
+
+// object-creation-expression:
+// new   type   (   argument-listopt   )   object-or-collection-initializeropt 
+// new   type   object-or-collection-initializer
+
+ObjectCreationExpression
+                   : NEW Type LPAREN              RPAREN
+				   | NEW Type LPAREN              RPAREN ObjectOrCollectionInitializer
+				   | NEW Type LPAREN ArgumentList RPAREN                                   
+				   | NEW Type LPAREN ArgumentList RPAREN ObjectOrCollectionInitializer 
+				   | NEW Type                            ObjectOrCollectionInitializer
+				   ;
+
+// object-or-collection-initializer:
+// object-initializer
+// collection-initializer
+
+ObjectOrCollectionInitializer
+                   : ObjectInitializer
+				   | CollectionInitializer
+				   ;
+
+// object-initializer:
+// {   member-initializer-listopt   }
+// {   member-initializer-list   ,   }
+
+ObjectInitializer  : LBRACE                             RBRACE
+                   | LBRACE MemberInitializerList       RBRACE
+				   | LBRACE MemberInitializerList COMMA RBRACE
+				   ;
+
+// member-initializer-list:
+// member-initializer
+// member-initializer-list   ,   member-initializer
+
+MemberInitializerList
+                   :                             MemberInitializer
+				   | MemberInitializerList COMMA MemberInitializer
+				   ;
+
+// member-initializer:
+// identifier   =   initializer-value
+//
+// initializer-value:
+// expression
+// object-or-collection-initializer
+
+MemberInitializer  : IDENTIFIER EQUAL Expression
+                   | IDENTIFIER EQUAL ObjectOrCollectionInitializer
+				   ;
+
+// collection-initializer:
+// {   element-initializer-list   }
+// {   element-initializer-list   ,   }
+
+CollectionInitializer
+                   : LBRACE ElementInitializerList       RBRACE
+				   | LBRACE ElementInitializerList COMMA RBRACE
+				   ;
+
+// element-initializer-list:
+// element-initializer
+// element-initializer-list   ,   element-initializer
+
+ElementInitializerList
+                   :                              ElementInitializer
+				   | ElementInitializerList COMMA ElementInitializer
+				   ;
+
+// element-initializer:
+// non-assignment-expression
+// {   expression-list   }
+
+ElementInitializer : NonAssignmentExpression
+                   | LBRACE ExpressionList RBRACE
+				   ;
+
+// expression-list:
+// expression
+// expression-list   ,   expression
+
+ExpressionList     :                      Expression
+                   | ExpressionList COMMA Expression
+				   ;
+
+// array-creation-expression:
+// new   non-array-type   [   expression-list   ]   rank-specifiersopt   array-initializeropt
+// new   array-type   array-initializer 
+// new   rank-specifier   array-initializer
+
+ArrayCreationExpression
+                   : NEW NonArrayType LBRACKET ExpressionList RBRACKET
+				   | NEW NonArrayType LBRACKET ExpressionList RBRACKET                ArrayInitializer
+				   | NEW NonArrayType LBRACKET ExpressionList RBRACKET RankSpecifiers
+				   | NEW NonArrayType LBRACKET ExpressionList RBRACKET RankSpecifiers ArrayInitializer
+                   | NEW ArrayType                                                    ArrayInitializer 
+				   | NEW                                               RankSpecifier  ArrayInitializer
+				   ;
+
+// delegate-creation-expression:
+// new   delegate-type   (   expression   )
+
+DelegateCreationExpression
+                   : NEW /*Delegate*/Type LPAREN Expression RPAREN
+				   ;
+
+// anonymous-object-creation-expression:
+// new   anonymous-object-initializer
+
+AnonymousObjectCreationExpression
+                   : NEW AnonymousObjectInitializer
+				   ;
+
+// anonymous-object-initializer:
+// {   member-declarator-listopt   }
+// {   member-declarator-list   ,   }
+
+AnonymousObjectInitializer
+                   : LBRACE                            RBRACE
+				   | LBRACE MemberDeclaratorList       RBRACE
+				   | LBRACE MemberDeclaratorList COMMA RBRACE
+				   ;
+
+// member-declarator-list:
+// member-declarator
+// member-declarator-list   ,   member-declarator
+
+MemberDeclaratorList
+                   :                            MemberDeclarator
+				   | MemberDeclaratorList COMMA MemberDeclarator
+				   ;
+
+// member-declarator:
+// simple-name
+// member-access
+// identifier   =   expression
+
+MemberDeclarator   : SimpleName
+                   | MemberAccess
+				   | IDENTIFIER EQUAL Expression
+				   ;
+
+// typeof-expression:
+//     typeof ( type )
+//     typeof ( unbound-type-name )
+//     typeof ( void )
+
+TypeofExpression   : TYPEOF LPAREN Type            RPAREN
+                // | TYPEOF LPAREN UnboundTypeName RPAREN
+                   | TYPEOF LPAREN VOID            RPAREN
+                   ;
+// Honestly, I do not understand completely the meaning
+// of undound types - so in this version of the syntax it's commented
+// (together with related productions).
+//
+// unbound-type-name:
+//                                               identifier   generic-dimension-specifier-opt
+//                             identifier   ::   identifier   generic-dimension-specifier-opt
+//     unbound-type-name   .                     identifier   generic-dimension-specifier-opt
+
+//UnboundTypeName    :                                           IDENTIFIER
+//                   |                                           IDENTIFIER GenericDimensionSpecifier
+//                   |                      IDENTIFIER DBL_COLON IDENTIFIER 
+//                   |                      IDENTIFIER DBL_COLON IDENTIFIER GenericDimensionSpecifier
+//                   | UnboundTypeName DOT                       IDENTIFIER
+//                   | UnboundTypeName DOT                       IDENTIFIER GenericDimensionSpecifier
+//                   ;
+
+// generic-dimension-specifier:
+//     <   commas-opt   >
+
+//GenericDimensionSpecifier
+//                   : LESS        GREATER
+//                   | LESS Commas GREATER
+//                   ;
+
+// commas:
+//     ,
+//     commas   ,
+
+//Commas             :        COMMA
+//                   | Commas COMMA
+//                   ;
+
+// checked-expression:
+//     checked ( expression )
+
+CheckedExpression  : CHECKED LPAREN Expression RPAREN
+                   ;
+
+// unchecked-expression:
+//     unchecked   (   expression   )
+
+UncheckedExpression: UNCHECKED LPAREN Expression RPAREN
+                   ;
+
+// default-value-expression:
+//     default ( type )
+
+DefaultValueExpression
+                   : DEFAULT LPAREN Type RPAREN
+                   ;
+
+// unary-expression:
+//     primary-expression
+//     +   unary-expression
+//     -   unary-expression
+//     !   unary-expression
+//     ~   unary-expression
+//     pre-increment-expression
+//     pre-decrement-expression
+//     cast-expression
+//
+// B.3 Grammar extensions for unsafe code
+// --------------------------------
+// unary-expression:
+// ...
+// pointer-indirection-expression
+// addressof-expression
+// --------------------------------
+//
+// pre-increment-expression:
+//     ++   unary-expression
+//
+// pre-decrement-expression:
+//     --   unary-expression
+//
+// cast-expression:
+//     (   type   )   unary-expression
+
+UnaryExpression    : PrimaryExpression
+                   | PLUS               UnaryExpression
+                   | MINUS              UnaryExpression
+                   | EXCLAMATION        UnaryExpression
+                   | TILDE              UnaryExpression
+                   | DBL_PLUS           UnaryExpression
+                   | DBL_MINUS          UnaryExpression
+                   | LPAREN Type RPAREN UnaryExpression
+				   
+				   | PointerIndirectionExpression
+				// | AddressofExpression
+                   ;
+
+// multiplicative-expression:
+//                                     unary-expression
+//     multiplicative-expression   *   unary-expression
+//     multiplicative-expression   /   unary-expression
+//     multiplicative-expression   %   unary-expression
+
+MultiplicativeExpression
+                   :                                  UnaryExpression
+                   | MultiplicativeExpression STAR    UnaryExpression
+                   | MultiplicativeExpression SLASH   UnaryExpression
+                   | MultiplicativeExpression PERCENT UnaryExpression
+                   ;
+
+// additive-expression:
+//                               multiplicative-expression
+//     additive-expression   +   multiplicative-expression
+//     additive-expression   –   multiplicative-expression
+
+AdditiveExpression :                          MultiplicativeExpression
+                   | AdditiveExpression PLUS  MultiplicativeExpression
+                   | AdditiveExpression MINUS MultiplicativeExpression
+                   ;
+
+// shift-expression:
+//                                  additive-expression 
+//     shift-expression <<          additive-expression
+//     shift-expression right-shift additive-expression
+
+ShiftExpression    :                             AdditiveExpression
+                   | ShiftExpression DBL_LESS    AdditiveExpression
+                   | ShiftExpression DBL_GREATER AdditiveExpression
+                   ;
+
+// relational-expression:
+//                                  shift-expression
+//     relational-expression   <    shift-expression
+//     relational-expression   >    shift-expression
+//     relational-expression   <=   shift-expression
+//     relational-expression   >=   shift-expression
+//     relational-expression   is   type
+//     relational-expression   as   type
+
+RelationalExpression
+                   :                                    ShiftExpression
+                   | RelationalExpression LESS          ShiftExpression
+                   | RelationalExpression GREATER       ShiftExpression
+                   | RelationalExpression LESS_EQUAL    ShiftExpression
+                   | RelationalExpression GREATER_EQUAL ShiftExpression
+                   | RelationalExpression IS Type
+                   | RelationalExpression AS Type
+                   ;
+
+// equality-expression:
+//                                relational-expression
+//     equality-expression   ==   relational-expression
+//     equality-expression   !=   relational-expression
+
+EqualityExpression :                               RelationalExpression
+                   | EqualityExpression DBL_EQUAL  RelationalExpression
+                   | EqualityExpression EXCL_EQUAL RelationalExpression
+                   ;
+
+// and-expression:
+//                          equality-expression
+//     and-expression   &   equality-expression
+
+AndExpression      :                         EqualityExpression
+                   | AndExpression AMPERSAND EqualityExpression  
+                   ;
+
+// exclusive-or-expression:
+//                                   and-expression
+//     exclusive-or-expression   ^   and-expression
+
+ExclusiveOrExpression
+                   :                             AndExpression
+                   | ExclusiveOrExpression CARET AndExpression
+                   ;
+
+// inclusive-or-expression:
+//                                   exclusive-or-expression
+//     inclusive-or-expression   |   exclusive-or-expression
+
+InclusiveOrExpression
+                   :                                ExclusiveOrExpression
+                   | InclusiveOrExpression VERTICAL ExclusiveOrExpression 
+                   ;
+
+// conditional-and-expression:
+//                                       inclusive-or-expression
+//     conditional-and-expression   &&   inclusive-or-expression
+
+ConditionalAndExpression
+                   :                                        InclusiveOrExpression
+                   | ConditionalAndExpression DBL_AMPERSAND InclusiveOrExpression
+                   ;
+
+// conditional-or-expression:
+//                                      conditional-and-expression
+//     conditional-or-expression   ||   conditional-and-expression
+
+ConditionalOrExpression
+                   :                                      ConditionalAndExpression
+                   | ConditionalOrExpression DBL_VERTICAL ConditionalAndExpression
+                   ;
+
+// null-coalescing-expression:
+//     conditional-or-expression
+//     conditional-or-expression   ??   null-coalescing-expression
+
+NullCoalescingExpression
+                   : ConditionalOrExpression
+                   | ConditionalOrExpression DBL_QUESTION NullCoalescingExpression
+                   ;
+
+// conditional-expression:
+//     null-coalescing-expression
+//     null-coalescing-expression   ?   expression   :   expression
+
+ConditionalExpression
+                   : NullCoalescingExpression
+                   | NullCoalescingExpression QUESTION Expression COLON Expression
+                   ;
+
+// lambda-expression:
+//     anonymous-function-signature   =>   anonymous-function-body
+
+LambdaExpression   : AnonymousFunctionSignature EQUAL_GREATER AnonymousFunctionBody
+                   ;
+
+// anonymous-method-expression:
+//     delegate   explicit-anonymous-function-signature-opt   block
+
+AnonymousMethodExpression
+                   : DELEGATE                                    Block
+                   | DELEGATE ExplicitAnonymousFunctionSignature Block
+                   ;
+
+// anonymous-function-signature:
+//     explicit-anonymous-function-signature 
+//     implicit-anonymous-function-signature
+
+AnonymousFunctionSignature
+                   : ExplicitAnonymousFunctionSignature
+                   | ImplicitAnonymousFunctionSignature
+                   ;
+
+// explicit-anonymous-function-signature:
+//     (   explicit-anonymous-function-parameter-list-opt   )
+
+ExplicitAnonymousFunctionSignature
+                   : LPAREN                                        RPAREN
+                   | LPAREN ExplicitAnonymousFunctionParameterList RPAREN
+                   ;
+
+// explicit-anonymous-function-parameter-list:
+//                                                      explicit-anonymous-function-parameter
+//     explicit-anonymous-function-parameter-list   ,   explicit-anonymous-function-parameter
+
+ExplicitAnonymousFunctionParameterList
+                   :                                              ExplicitAnonymousFunctionParameter
+                   | ExplicitAnonymousFunctionParameterList COMMA ExplicitAnonymousFunctionParameter
+                   ;
+
+// anonymous-function-parameter-modifier: 
+//     ref
+//     out
+//
+// explicit-anonymous-function-parameter:
+//     anonymous-function-parameter-modifier-opt   type   identifier
+
+ExplicitAnonymousFunctionParameter
+                   :     Type IDENTIFIER
+                   | REF Type IDENTIFIER
+                   | OUT Type IDENTIFIER
+                   ;
+
+// implicit-anonymous-function-signature:
+//     (   implicit-anonymous-function-parameter-listopt   )
+//     implicit-anonymous-function-parameter
+
+// implicit-anonymous-function-parameter-list:
+//                                                      implicit-anonymous-function-parameter
+//     implicit-anonymous-function-parameter-list   ,   implicit-anonymous-function-parameter
+
+// implicit-anonymous-function-parameter:
+//     identifier
+
+ImplicitAnonymousFunctionSignature
+                   : IDENTIFIER
+                   | LPAREN IdentifierList RPAREN
+                   ;
+
+IdentifierList     :                      IDENTIFIER
+                   | IdentifierList COMMA IDENTIFIER
+                   ;
+
+// anonymous-function-body:
+//     expression
+//     block
+
+AnonymousFunctionBody
+                   : Expression
+                   | Block
+                   ;
+
+// query-expression:
+//     from-clause   query-body
+
+QueryExpression    : FromClause QueryBody
+                   ;
+
+// from-clause:
+//     from   type-opt   identifier   in   expression
+
+FromClause         : FROM      IDENTIFIER IN Expression
+                   | FROM Type IDENTIFIER IN Expression
+                   ;
+
+// query-body:
+//     query-body-clauses-opt   select-or-group-clause   query-continuation-opt
+
+QueryBody          :                  SelectOrGroupClause                  
+                   |                  SelectOrGroupClause QueryContinuation
+                   | QueryBodyClauses SelectOrGroupClause                   
+                   | QueryBodyClauses SelectOrGroupClause QueryContinuation
+                   ;
+
+// query-body-clauses:
+//                          query-body-clause
+//     query-body-clauses   query-body-clause
+
+QueryBodyClauses   :                  QueryBodyClause
+                   | QueryBodyClauses QueryBodyClause
+                   ;
+
+// query-body-clause:
+//     from-clause
+//     let-clause
+//     where-clause
+//     join-clause
+//     join-into-clause
+//     orderby-clause
+
+QueryBodyClause    : FromClause
+                   | LetClause
+                   | WhereClause
+                   | JoinClause
+                   | JoinIntoClause
+                   | OrderByClause
+                   ;
+
+// let-clause:
+//     let   identifier   =   expression
+
+LetClause          : LET IDENTIFIER EQUAL Expression
+                   ;
+
+// where-clause:
+//     where   boolean-expression
+
+WhereClause        : WHERE Expression
+                   ;
+
+// join-clause:
+// join   typeopt   identifier   in   expression   on   expression   equals   expression 
+
+JoinClause         : JOIN      IDENTIFIER IN Expression ON Expression EQUALS Expression 
+                   | JOIN Type IDENTIFIER IN Expression ON Expression EQUALS Expression 
+                   ;
+
+// join-into-clause:
+// join   typeopt   identifier   in   expression   on   expression   equals   expression   into   identifier
+
+JoinIntoClause     : JOIN      IDENTIFIER IN Expression ON Expression EQUALS Expression INTO IDENTIFIER
+                   | JOIN Type IDENTIFIER IN Expression ON Expression EQUALS Expression INTO IDENTIFIER
+                   ;
+
+// orderby-clause:
+// orderby   orderings
+
+OrderByClause      : ORDERBY Orderings
+                   ;
+
+// orderings:
+// ordering
+// orderings   ,   ordering
+
+Orderings          :                 Ordering
+                   | Orderings COMMA Ordering
+                   ;
+
+// ordering:
+// expression    ordering-direction-opt
+
+Ordering           : Expression
+                   | Expression OrderingDirection
+                   ;
+
+// ordering-direction:
+// ascending
+// descending
+
+OrderingDirection  : ASCENDING
+                   | DESCENDING
+                   ;
+
+// select-or-group-clause:
+// select-clause
+// group-clause
+//
+// select-clause:
+// select   expression
+//
+// group-clause:
+// group   expression   by   expression
+
+SelectOrGroupClause: SELECT Expression
+                   | GROUP Expression BY Expression
+                   ;
+
+// query-continuation:
+// into   identifier   query-body
+
+QueryContinuation  : INTO IDENTIFIER QueryBody
+                   ;
+
+// assignment:
+// unary-expression   assignment-operator   expression
+
+Assignment         : UnaryExpression AssignmentOperator Expression
+                   ;
+
+// assignment-operator:
+// =
+// +=
+// -=
+// *=
+// /=
+// %=
+// &=
+// |=
+// ^=
+// <<=
+// right-shift-assignment
+
+AssignmentOperator : EQUAL              // =
+                   | PLUS_EQUAL         // +=
+                   | MINUS_EQUAL        // -=
+                   | STAR_EQUAL         // *=
+                   | SLASH_EQUAL        // /=
+                   | PERCENT_EQUAL      // %=
+                   | AMPERSAND_EUAL     // &=
+                   | VERTICAL_EQUAL     // |=
+                   | CARET_EQUAL        // ^=
+                   | DBL_LESS_EQUAL     // <<=
+                   | DBL_GREATER_EQUAL  // right-shift-assignment
+                   ;
+
+// expression: 
+// non-assignment-expression
+// assignment
+
+Expression         : NonAssignmentExpression
+                   | Assignment
+                   ;
+
+// non-assignment-expression:
+// conditional-expression
+// lambda-expression
+// query-expression
+
+NonAssignmentExpression
+                   : ConditionalExpression
+                   | LambdaExpression
+                   | QueryExpression
+                   ;
+
+// constant-expression:
+// expression
+// boolean-expression:
+// expression
+
+// B.2.5 Statements
+
+// statement:
+//     labeled-statement
+//     declaration-statement
+//     embedded-statement
+       
+Statement          : LabeledStatement
+                   | DeclarationStatement
+                   | EmbeddedStatement
+                   ;
+
+// embedded-statement:
+//     block
+//     empty-statement
+//     expression-statement
+//     selection-statement
+//     iteration-statement
+//     jump-statement
+//     try-statement
+//     checked-statement
+//     unchecked-statement
+//     lock-statement
+//     using-statement 
+//     yield-statement
+//
+// B.3 Grammar extensions for unsafe code
+//
+// embedded-statement:
+// ...
+// unsafe-statement 
+// fixed-statement
+
+EmbeddedStatement  : Block
+                   | EmptyStatement
+                   | ExpressionStatement
+                   | SelectionStatement
+                   | IterationStatement
+                   | JumpStatement
+                   | TryStatement
+                   | CheckedStatement
+                   | UncheckedStatement
+                   | LockStatement
+                   | UsingStatement 
+                   | YieldStatement
+				   
+				   | UnsafeStatement
+				   | FixedStatement
+                   ;
+
+// block:
+//     {   statement-listopt   }
+
+Block              : LBRACE               RBRACE
+                   | LBRACE StatementList RBRACE
+                   ;
+
+// statement-list:
+//                      statement
+//     statement-list   statement
+
+StatementList      :               Statement
+                   | StatementList Statement
+                   ;
+
+// empty-statement:
+//     ;
+
+EmptyStatement     : SEMICOLON
+                   ;
+
+// labeled-statement:
+//     identifier   :   statement
+
+LabeledStatement   : IDENTIFIER COLON Statement
+                   ;
+
+// declaration-statement:
+//     local-variable-declaration   ;
+//     local-constant-declaration   ;
+
+DeclarationStatement
+                   : LocalVariableDeclaration SEMICOLON
+                   | LocalConstantDeclaration SEMICOLON
+                   ;
+
+// local-variable-declaration:
+//     local-variable-type   local-variable-declarators
+//
+// local-variable-type:
+//     type
+//     var
+
+LocalVariableDeclaration
+                   : Type LocalVariableDeclarators
+                   | VAR  LocalVariableDeclarators
+                   ;
+
+// local-variable-declarators:
+//                                      local-variable-declarator
+//     local-variable-declarators   ,   local-variable-declarator
+
+LocalVariableDeclarators
+                   :                                LocalVariableDeclarator
+                   | LocalVariableDeclarators COMMA LocalVariableDeclarator
+                   ;
+
+// local-variable-declarator:
+//     identifier
+//     identifier   =   local-variable-initializer
+
+LocalVariableDeclarator
+                   : IDENTIFIER
+                   | IDENTIFIER EQUAL LocalVariableUnitializer
+                   ;
+				   
+// local-variable-initializer:
+//     expression
+//     array-initializer
+//
+// B.3 Grammar extensions for unsafe code
+//
+// local-variable-initializer:
+// ...
+// stackalloc-initializer
+
+LocalVariableUnitializer
+                   : Expression
+				   | ArrayInitializer
+				   
+				   | StackallocInitializer
+				   ;
+
+// local-constant-declaration:
+//     const   type   constant-declarators
+
+LocalConstantDeclaration
+                   : CONST Type ConstantDeclarators
+                   ;
+
+// constant-declarators:
+//                                constant-declarator
+//     constant-declarators   ,   constant-declarator
+
+ConstantDeclarators:                           ConstantDeclarator
+                   | ConstantDeclarators COMMA ConstantDeclarator
+                   ;
+
+// constant-declarator:
+//     identifier   =   constant-expression
+
+ConstantDeclarator : IDENTIFIER EQUAL Expression
+                   ;
+
+// expression-statement:
+//     statement-expression   ;
+
+ExpressionStatement: StatementExpression SEMICOLON
+                   ;
+
+// statement-expression:
+//     invocation-expression
+//     object-creation-expression
+//     assignment
+//     post-increment-expression
+//     post-decrement-expression
+//     pre-increment-expression
+//     pre-decrement-expression
+
+
+/* TODO: Needs to add 'await' according to newest standards */
+StatementExpression: InvocationExpression
+                   | ObjectCreationExpression
+                   | Assignment
+//     post-increment-expression
+//     post-decrement-expression
+//     pre-increment-expression
+//     pre-decrement-expression
+                   ;
+
+// selection-statement:
+//     if-statement
+//     switch-statement
+
+SelectionStatement : IfStatement
+                   | SwitchStatement
+                   ;
+
+// if-statement:
+//     if   (   boolean-expression   )   embedded-statement
+//     if   (   boolean-expression   )   embedded-statement   else   embedded-statement
+
+IfStatement        : IF LPAREN Expression RPAREN EmbeddedStatement
+                   | IF LPAREN Expression RPAREN EmbeddedStatement ELSE EmbeddedStatement %prec ELSE
+                   ;
+
+// switch-statement:
+// switch   (   expression   )   switch-block
+// switch-block:
+// {   switch-sections-opt   }
+
+SwitchStatement    : /* SWITCH LPAREN Expression RPAREN LBRACE                RBRACE
+                   |*/ SWITCH LPAREN Expression RPAREN LBRACE SwitchSections RBRACE
+                   ;
+
+// switch-sections:
+//                       switch-section
+//     switch-sections   switch-section
+//
+// switch-section:
+//     switch-labels   statement-list
+
+SwitchSections     :                SwitchSection
+                   | SwitchSections SwitchSection
+                   ;
+
+SwitchSection      : SwitchLabels StatementList
+                   ; 
+
+// switch-labels:
+//                     switch-label
+//     switch-labels   switch-label
+
+SwitchLabels       :              SwitchLabel
+                   | SwitchLabels SwitchLabel
+                   ;
+
+// switch-label:
+//     case   constant-expression   :
+//     default   :
+
+SwitchLabel        : CASE Expression COLON
+                   | DEFAULT         COLON
+                   ;
+
+// iteration-statement:
+//     while-statement
+//     do-statement
+//     for-statement
+//     foreach-statement
+
+IterationStatement : WhileStatement
+                   | DoStatement
+                   | ForStatement
+                   | ForeachStatement
+                   ;
+
+// while-statement:
+//     while   (   boolean-expression   )   embedded-statement
+
+WhileStatement     : WHILE LPAREN Expression RPAREN EmbeddedStatement
+                   ;
+
+// do-statement:
+//     do   embedded-statement   while   (   boolean-expression   )   ;
+
+DoStatement        : DO EmbeddedStatement WHILE LPAREN Expression RPAREN SEMICOLON
+                   ;
+
+// for-statement:
+//     for   (   for-initializeropt   ;   for-conditionopt   ;   for-iteratoropt   )   embedded-statement
+//
+// for-initializer:
+//     local-variable-declaration
+//     statement-expression-list
+//
+// for-condition:
+//     boolean-expression
+//
+// for-iterator:
+//     statement-expression-list
+
+ForStatement       : FOR LPAREN ForInitializerOpt SEMICOLON ForConditionOpt SEMICOLON ForIteratorOpt RPAREN
+                           EmbeddedStatement
+                   ;
+
+ForInitializerOpt  :  // empty
+                   | LocalVariableDeclaration
+                   | StatementExpressionList
+                   ;
+
+ForConditionOpt    :  // empty
+                   | Expression
+                   ;
+				   
+ForIteratorOpt     :  // empty
+                   | StatementExpressionList
+				   ;
+
+// statement-expression-list:
+//                                     statement-expression
+//     statement-expression-list   ,   statement-expression
+
+StatementExpressionList
+                   :                               StatementExpression
+                   | StatementExpressionList COMMA StatementExpression
+                   ;
+
+// foreach-statement:
+//     foreach   (   local-variable-type   identifier   in   expression   )   embedded-statement
+//
+// local-variable-type:
+//     type
+//     var
+
+ForeachStatement   : FOREACH LPAREN Type IDENTIFIER IN Expression RPAREN EmbeddedStatement
+                   | FOREACH LPAREN VAR  IDENTIFIER IN Expression RPAREN EmbeddedStatement
+                   ;
+
+// jump-statement:
+//     break-statement
+//     continue-statement
+//     goto-statement
+//     return-statement
+//     throw-statement
+//
+// break-statement:
+//     break   ;
+//
+// continue-statement:
+//     continue   ;
+//
+// goto-statement:
+//     goto   identifier   ;
+//     goto   case   constant-expression   ;
+//     goto   default   ;
+//
+// return-statement:
+//     return   expressionopt   ;
+//
+// throw-statement:
+//     throw   expressionopt   ;
+
+JumpStatement      : BREAK                SEMICOLON
+                   | CONTINUE             SEMICOLON
+
+                   | GOTO IDENTIFIER      SEMICOLON
+                   | GOTO CASE Expression SEMICOLON
+                   | GOTO DEFAULT         SEMICOLON
+
+                   | RETURN               SEMICOLON
+                   | RETURN Expression    SEMICOLON
+
+                   | THROW                SEMICOLON
+                   | THROW Expression     SEMICOLON
+                   ;
+
+// try-statement:
+//     try   block   catch-clauses
+//     try   block                   finally-clause
+//     try   block   catch-clauses   finally-clause
+
+TryStatement       : TRY Block CatchClauses
+                   | TRY Block              FinallyClause
+                   | TRY Block CatchClauses FinallyClause
+                   ;
+
+// catch-clauses:
+//     specific-catch-clauses   general-catch-clause-opt
+//     specific-catch-clauses-opt   general-catch-clause
+
+CatchClauses       : SpecificCatchClauses
+                   | SpecificCatchClauses GeneralCatchClause
+                   |                      GeneralCatchClause
+                   ;
+
+// specific-catch-clauses:
+//                              specific-catch-clause
+//     specific-catch-clauses   specific-catch-clause
+
+SpecificCatchClauses
+                   :                      SpecificCatchClause
+                   | SpecificCatchClauses SpecificCatchClause
+                   ;
+
+// specific-catch-clause:
+//     catch   (   class-type   identifieropt   )   block
+
+SpecificCatchClause: CATCH LPAREN /*Class*/Type            RPAREN Block
+                   | CATCH LPAREN /*Class*/Type IDENTIFIER RPAREN Block
+                   ;
+
+// general-catch-clause:
+//     catch   block
+
+GeneralCatchClause : CATCH Block
+                   ;
+
+// finally-clause:
+//     finally   block
+
+FinallyClause      : FINALLY Block
+                   ;
+
+// checked-statement:
+//     checked   block
+
+CheckedStatement   : CHECKED Block
+                   ;
+
+// unchecked-statement:
+//     unchecked   block
+
+UncheckedStatement : UNCHECKED Block
+                   ;
+
+// lock-statement:
+//     lock   (   expression   )   embedded-statement
+
+LockStatement      : LOCK LPAREN Expression RPAREN EmbeddedStatement
+                   ;
+
+// using-statement:
+//     using   (    resource-acquisition   )    embedded-statement
+
+// resource-acquisition:
+//     local-variable-declaration
+//     expression
+
+UsingStatement     : USING LPAREN LocalVariableDeclaration RPAREN EmbeddedStatement
+                   | USING LPAREN Expression               RPAREN EmbeddedStatement
+                   ;
+
+// yield-statement:
+//     yield   return   expression   ;
+//     yield   break   ;
+
+YieldStatement     : YIELD RETURN Expression SEMICOLON
+                   | YIELD BREAK             SEMICOLON
+                   ;
+
+// B.2.6 Namespaces
+
+// compilation-unit:
+// extern-alias-directivesopt   using-directivesopt  global-attributesopt
+// 		namespace-member-declarationsopt
+
+CompilationUnit    : ExternAliasDirectivesOpt UsingDirectivesOpt GlobalAttributesOpt
+                        NamespaceMemberDeclarationsOpt
+				   ;
+
+ExternAliasDirectivesOpt
+                   :  // empty
+                   | ExternAliasDirectives
+				   ;
+				   
+UsingDirectivesOpt :  // empty
+                   | UsingDirectives
+				   ;
+
+GlobalAttributesOpt:  // empty
+                   | GlobalAttributes
+				   ;
+
+NamespaceMemberDeclarationsOpt
+                   :  // empty
+                   | NamespaceMemberDeclarations
+                   ;
+				   
+// namespace-declaration:
+// namespace   qualified-identifier   namespace-body   ;opt
+
+NamespaceDeclaration
+                   : NAMESPACE QualifiedIdentifier NamespaceBody
+                   | NAMESPACE QualifiedIdentifier NamespaceBody SEMICOLON
+                   ;
+
+// qualified-identifier:
+// identifier
+// qualified-identifier   .   identifier
+
+QualifiedIdentifier:                         IDENTIFIER
+                   | QualifiedIdentifier DOT IDENTIFIER
+                   ;
+
+// namespace-body:
+// {   extern-alias-directives-opt   using-directives-opt   namespace-member-declarations-opt   }
+
+NamespaceBody      : LBRACE                                                                   RBRACE
+                   | LBRACE                                       NamespaceMemberDeclarations RBRACE
+                   | LBRACE                       UsingDirectives                             RBRACE
+                   | LBRACE                       UsingDirectives NamespaceMemberDeclarations RBRACE
+                   | LBRACE ExternAliasDirectives                                             RBRACE
+                   | LBRACE ExternAliasDirectives                 NamespaceMemberDeclarations RBRACE
+                   | LBRACE ExternAliasDirectives UsingDirectives                             RBRACE
+                   | LBRACE ExternAliasDirectives UsingDirectives NamespaceMemberDeclarations RBRACE
+                   ;
+
+// extern-alias-directives:
+// extern-alias-directive
+// extern-alias-directives   extern-alias-directive
+
+ExternAliasDirectives
+                   :                       ExternAliasDirective
+                   | ExternAliasDirectives ExternAliasDirective
+                   ;
+
+// extern-alias-directive:
+// extern   alias   identifier   ;
+
+ExternAliasDirective
+                   : EXTERN ALIAS IDENTIFIER SEMICOLON
+                   ;
+
+// using-directives:
+// using-directive
+// using-directives   using-directive
+
+UsingDirectives    :                 UsingDirective
+                   | UsingDirectives UsingDirective
+                   ;
+
+// using-directive:
+// using-alias-directive
+// using-namespace-directive
+
+UsingDirective     : UsingAliasDirective
+                   | UsingNamespaceDirective
+                   ;
+
+// using-alias-directive:
+// using   identifier   =   namespace-or-type-name   ;
+
+UsingAliasDirective: USING IDENTIFIER EQUAL NamespaceOrTypeName SEMICOLON
+                   ;
+
+// using-namespace-directive:
+// using   namespace-name   ;
+
+UsingNamespaceDirective
+                   : USING NamespaceName SEMICOLON
+                   ;
+
+// namespace-member-declarations:
+// namespace-member-declaration
+// namespace-member-declarations   namespace-member-declaration
+
+NamespaceMemberDeclarations
+                   :                             NamespaceMemberDeclaration
+                   | NamespaceMemberDeclarations NamespaceMemberDeclaration
+                   ;
+
+// namespace-member-declaration:
+// namespace-declaration
+// type-declaration
+
+NamespaceMemberDeclaration
+                   : NamespaceDeclaration
+                   | TypeDeclaration
+                   ;
+
+// type-declaration:
+// class-declaration
+// struct-declaration
+// interface-declaration
+// enum-declaration
+// delegate-declaration
+
+TypeDeclaration    : ClassDeclaration
+                   | StructDeclaration
+                   | InterfaceDeclaration
+                   | EnumDeclaration
+                   | DelegateDeclaration
+                   ;
+
+// qualified-alias-member:
+// identifier   ::   identifier   type-argument-listopt
+
+QualifiedAliasMember
+                   : IDENTIFIER DBL_COLON IDENTIFIER
+                   | IDENTIFIER DBL_COLON IDENTIFIER TypeArgumentList
+                   ;
+
+//------------------------------------
+
+//ModifiersOpt       :  // empty
+//                   | Modifiers
+//                   ;
+                   
+Modifiers          :           Modifier
+                   | Modifiers Modifier
+                   ;
+
+// I have added this "raw" production as a replacement
+// for a series of more specific productions like
+// "ClassModifier", "InterfaceModifier", "MethodModifier" etc.
+//
+// Also, I have added 'PARTIAL' here as a "modifier", instead
+// of using it explcitly in a few declaration productions.
+Modifier           : NEW
+                   | PUBLIC
+                   | PROTECTED
+                   | INTERNAL
+                   | PRIVATE
+                   | ABSTRACT
+                   | SEALED
+                   | STATIC
+				   | UNSAFE
+                   | READONLY
+                   | VOLATILE
+                   | VIRTUAL
+                   | OVERRIDE
+                   | EXTERN
+				   
+				   | PARTIAL
+                   ;
+//------------------------------------
+				   
+// B.2.7 Classes
+
+// class-declaration:
+// attributesopt   class-modifiersopt   partialopt   class   identifier   type-parameter-listopt
+// 		class-baseopt   type-parameter-constraints-clausesopt   class-body   ;opt
+
+ClassDeclaration   : AttributesOpt                    /*PartialOpt*/ CLASS IDENTIFIER TypeParameterListOpt
+                        ClassBaseOpt TypeParameterConstraintsClausesOpt ClassBody SemicolonOpt
+                   | AttributesOpt /*Class*/Modifiers /*PartialOpt*/ CLASS IDENTIFIER TypeParameterListOpt
+                        ClassBaseOpt TypeParameterConstraintsClausesOpt ClassBody SemicolonOpt
+                   ;
+                   
+AttributesOpt      :  // empty
+                   | Attributes
+                   ;
+
+//ClassModifiersOpt  :  // empty
+//                   | ClassModifiers
+//                   ;
+                   
+// class-modifiers:
+// class-modifier
+// class-modifiers   class-modifier
+
+//ClassModifiers     :                 ClassModifier
+//                   | ClassModifiers  ClassModifier
+//                   ;
+
+// class-modifier:
+// new
+// public
+// protected
+// internal
+// private
+// abstract
+// sealed
+// static
+
+//ClassModifier      : NEW
+//                   | PUBLIC
+//                   | PROTECTED
+//                   | INTERNAL
+//                   | PRIVATE
+//                   | ABSTRACT
+//                   | SEALED
+//                   | STATIC
+//                   | UNSAFE
+//                   ;
+
+// type-parameter-list:
+// <   type-parameters   >
+
+TypeParameterListOpt
+                   :  // empty
+				   | LESS TypeParameters GREATER // TypeParameterList
+				   ;
+				   
+//TypeParameterList  : LESS TypeParameters GREATER
+//                   ;
+                   
+// type-parameters:
+// attributesopt   type-parameter
+// type-parameters   ,   attributesopt   type-parameter
+//
+// type-parameter:
+// identifier
+
+TypeParameters     :                      AttributesOpt IDENTIFIER
+                   | TypeParameters COMMA AttributesOpt IDENTIFIER
+                   ;
+
+// class-base:
+// :   class-type
+// :   interface-type-list
+// :   class-type   ,   interface-type-list
+
+// There is a reduce/reduce conflict here
+// because class-type & interface-type cannot be distinguished.
+// So I have simplified the production making it more general.
+//ClassBaseOpt       :  // empty
+//                   | COLON /*Class*/Type
+//                   | COLON                 InterfaceTypeList
+//                   | COLON /*Class*/Type COMMA InterfaceTypeList
+//                   ;
+ClassBaseOpt       :  // empty
+                   | COLON BaseTypeList
+				   ;
+				   
+BaseTypeList       :                    Type
+                   | BaseTypeList COMMA Type
+                   ;
+				   
+TypeParameterConstraintsClausesOpt
+                   : TypeParameterConstraintsClauses
+				   ;
+
+// interface-type-list:
+// interface-type
+// interface-type-list   ,   interface-type
+
+//InterfaceTypeList  :                         /*Interface*/Type
+//                   | InterfaceTypeList COMMA /*Interface*/Type
+//                   ;
+
+// type-parameter-constraints-clauses:
+// type-parameter-constraints-clause
+// type-parameter-constraints-clauses   type-parameter-constraints-clause
+
+TypeParameterConstraintsClauses
+                   :                                 TypeParameterConstraintsClause
+                   | TypeParameterConstraintsClauses TypeParameterConstraintsClause
+                   ;
+
+// type-parameter-constraints-clause:
+// where   type-parameter   :   type-parameter-constraints
+//
+// type-parameter:
+// identifier
+
+TypeParameterConstraintsClause
+                   : WHERE IDENTIFIER COLON TypeParameterConstraints
+                   ;
+
+// type-parameter-constraints:
+// primary-constraint
+// secondary-constraints
+// constructor-constraint
+// primary-constraint   ,   secondary-constraints
+// primary-constraint   ,   constructor-constraint
+// secondary-constraints   ,   constructor-constraint
+// primary-constraint   ,   secondary-constraints   ,   constructor-constraint
+
+TypeParameterConstraints
+                   : PrimaryConstraint
+                   |                         SecondaryConstraints
+                   |                                                    ConstructorConstraint
+                   | PrimaryConstraint COMMA SecondaryConstraints
+                   | PrimaryConstraint COMMA                            ConstructorConstraint
+                   |                         SecondaryConstraints COMMA ConstructorConstraint
+                   | PrimaryConstraint COMMA SecondaryConstraints COMMA ConstructorConstraint
+                   ;
+
+// primary-constraint:
+// class-type
+// class
+// struct
+
+//PrimaryConstraint  : /*Class*/Type
+//                   | CLASS
+//                   | STRUCT
+//                   ;
+PrimaryConstraint  : CLASS
+                   | STRUCT
+				   ;
+
+// secondary-constraints:
+// interface-type
+// type-parameter
+// secondary-constraints   ,   interface-type
+// secondary-constraints   ,   type-parameter
+//
+// type-parameter:
+// identifier
+
+SecondaryConstraints
+                   :                            /*Interface*/Type
+               //  |                            TYPE_PARAMETER_IDENTIFIER // TypeParameter
+                   | SecondaryConstraints COMMA /*Interface*/Type
+               //  | SecondaryConstraints COMMA TYPE_PARAMETER_IDENTIFIER // TypeParameter
+                   ;
+
+// constructor-constraint:
+// new   (   )
+
+ConstructorConstraint
+                   : NEW LPAREN RPAREN
+                   ;
+
+// class-body:
+// {   class-member-declarationsopt   }
+
+ClassBody          : LBRACE                         RBRACE
+                   | LBRACE ClassMemberDeclarations RBRACE
+                   ;
+
+// class-member-declarations:
+// class-member-declaration
+// class-member-declarations   class-member-declaration
+
+ClassMemberDeclarations
+                   :                         ClassMemberDeclaration
+                   | ClassMemberDeclarations ClassMemberDeclaration
+                   ;
+
+// class-member-declaration:
+// constant-declaration
+// field-declaration
+// method-declaration
+// property-declaration
+// event-declaration
+// indexer-declaration
+// operator-declaration
+// constructor-declaration
+// destructor-declaration
+// static-constructor-declaration
+// type-declaration
+
+ClassMemberDeclaration
+                   : ConstantDeclaration
+                   | FieldDeclaration
+                   | MethodDeclaration
+                   | PropertyDeclaration
+                   | EventDeclaration
+                   | IndexerDeclaration
+                   | OperatorDeclaration
+                   | ConstructorDeclaration
+                   | DestructorDeclaration
+                   | StaticConstructorDeclaration
+                   | TypeDeclaration
+                   ;
+
+// constant-declaration:
+// attributesopt   constant-modifiersopt   const   type   constant-declarators   ;
+
+ConstantDeclaration: AttributesOpt                   CONST Type ConstantDeclarators SEMICOLON
+                   | AttributesOpt /*Constant*/Modifiers CONST Type ConstantDeclarators SEMICOLON
+                   ;
+
+// constant-modifiers:
+// constant-modifier
+// constant-modifiers   constant-modifier
+
+//ConstantModifiers  :                   ConstantModifier
+//                   | ConstantModifiers ConstantModifier
+//                   ;
+
+// constant-modifier:
+// new
+// public
+// protected
+// internal
+// private
+
+//ConstantModifier   : NEW
+//                   | PUBLIC
+//                   | PROTECTED
+//                   | INTERNAL
+//                   | PRIVATE
+//                   ;
+
+// constant-declarators:
+// constant-declarator
+// constant-declarators   ,   constant-declarator
+
+//ConstantDeclarators:                           ConstantDeclarator
+//                   | ConstantDeclarators COMMA ConstantDeclarator
+//                   ;
+
+// constant-declarator:
+// identifier   =   constant-expression
+
+//ConstantDeclarator : IDENTIFIER EQUAL Expression
+//                   ;
+
+// field-declaration:
+// attributesopt   field-modifiersopt   type   variable-declarators   ;
+
+FieldDeclaration   : AttributesOpt                Type VariableDeclarators SEMICOLON
+                   | AttributesOpt /*Field*/Modifiers Type VariableDeclarators SEMICOLON
+                   ;
+
+// field-modifiers:
+// field-modifier
+// field-modifiers   field-modifier
+
+//FieldModifiers     :                FieldModifier
+//                   | FieldModifiers FieldModifier
+//                   ;
+
+// field-modifier:
+// new
+// public
+// protected
+// internal
+// private
+// static
+// readonly
+// volatile
+
+//FieldModifier      : NEW
+//                   | PUBLIC
+//                   | PROTECTED
+//                   | INTERNAL
+//                   | PRIVATE
+//                   | STATIC
+//                   | READONLY
+//                   | VOLATILE
+//                   | UNSAFE
+//                   ;
+
+// variable-declarators:
+// variable-declarator
+// variable-declarators   ,   variable-declarator
+
+VariableDeclarators:                           VariableDeclarator
+                   | VariableDeclarators COMMA VariableDeclarator
+                   ;
+
+// variable-declarator:
+// identifier
+// identifier   =   variable-initializer
+//
+// variable-initializer:
+// expression
+// array-initializer
+
+VariableDeclarator : IDENTIFIER
+                   | IDENTIFIER EQUAL Expression
+                   | IDENTIFIER EQUAL ArrayInitializer
+                   ;
+
+// method-declaration:
+// method-header   method-body
+
+MethodDeclaration  : MethodHeader MethodBody
+                   ;
+
+// method-header:
+// attributesopt   method-modifiersopt   partialopt   return-type   member-name   type-parameter-listopt
+// 		(   formal-parameter-listopt   )   type-parameter-constraints-clausesopt
+
+MethodHeader       : AttributesOpt                     /*PartialOpt*/ ReturnType MemberName TypeParameterListOpt
+                       LPAREN FormalParameterListOpt RPAREN TypeParameterConstraintsClausesOpt
+                   | AttributesOpt /*Method*/Modifiers /*PartialOpt*/ ReturnType MemberName TypeParameterListOpt
+                       LPAREN FormalParameterListOpt RPAREN TypeParameterConstraintsClausesOpt
+                   ;
+                   
+//MethodModifiersOpt :  // empty
+//                   | MethodModifiers
+//                   ;
+                   
+// method-modifiers:
+// method-modifier
+// method-modifiers   method-modifier
+
+//MethodModifiers    :                 MethodModifier
+//                   | MethodModifiers MethodModifier
+//                   ;
+                   
+// method-modifier:
+// new
+// public
+// protected
+// internal
+// private
+// static
+// virtual
+// sealed
+// override
+// abstract
+// extern
+
+//MethodModifier     : NEW
+//                   | PUBLIC
+//                   | PROTECTED
+//                   | INTERNAL
+//                   | PRIVATE
+//                   | STATIC
+//                   | VIRTUAL
+//                   | SEALED
+//                   | OVERRIDE
+//                   | ABSTRACT
+//                   | EXTERN
+//                   | UNSAFE
+//                   ;
+                   
+//PartialOpt         :  // empty
+//                   | PARTIAL
+//                   ;
+
+// return-type:
+// type
+// void
+
+ReturnType         : Type
+                   | VOID
+                   ;
+
+// member-name:
+// identifier
+// interface-type   .   identifier
+
+MemberName         :                   IDENTIFIER
+                   | /*Interface*/Type DOT IDENTIFIER
+                   ;
+
+// method-body:
+// block
+// ;
+
+MethodBody         : Block
+                   | SEMICOLON
+                   ;
+
+FormalParameterListOpt
+                   :  // empty
+                   | FormalParameterList
+                   ;
+
+// formal-parameter-list:
+// fixed-parameters
+// fixed-parameters   ,   parameter-array
+// parameter-array
+
+FormalParameterList: FixedParameters
+                   | FixedParameters COMMA ParameterArray
+                   |                       ParameterArray
+                   ;
+
+// fixed-parameters:
+// fixed-parameter
+// fixed-parameters   ,   fixed-parameter
+
+FixedParameters    :                       FixedParameter
+                   | FixedParameters COMMA FixedParameter
+                   ;
+
+// fixed-parameter:
+// attributesopt   parameter-modifieropt   type   identifier   default-argumentopt 
+//
+// default-argument:
+// =  expression
+
+FixedParameter     : AttributesOpt ParameterModifierOpt Type IDENTIFIER
+                   | AttributesOpt ParameterModifierOpt Type IDENTIFIER EQUAL Expression
+                   ;
+
+ParameterModifierOpt
+                   :  // empty
+				   | ParameterModifier
+				   ;
+				   
+// parameter-modifier:
+// ref
+// out
+// this
+
+ParameterModifier  : REF
+                   | OUT
+                   | THIS
+                   ;
+
+// parameter-array:
+// attributesopt   params   array-type   identifier
+
+ParameterArray     : AttributesOpt PARAMS ArrayType IDENTIFIER
+                   ;
+
+// property-declaration:
+// attributesopt   property-modifiersopt   type   member-name   {   accessor-declarations   }
+
+PropertyDeclaration: AttributesOpt                       Type MemberName LPAREN AccessorDeclarations RPAREN
+                   | AttributesOpt /*Property*/Modifiers Type MemberName LPAREN AccessorDeclarations RPAREN
+                   ;
+
+//PropertyModifiersOpt
+//                   :  // empty
+//                   | PropertyModifiers
+//                   ;
+                   
+// property-modifiers:
+// property-modifier
+// property-modifiers   property-modifier
+
+//PropertyModifiers  :                   PropertyModifier
+//                   | PropertyModifiers PropertyModifier
+//                   ;
+                   
+// property-modifier:
+// new
+// public
+// protected
+// internal
+// private
+// static
+// virtual
+// sealed
+// override
+// abstract
+// extern
+
+//PropertyModifier   : NEW
+//                   | PUBLIC
+//                   | PROTECTED
+//                   | INTERNAL
+//                   | PRIVATE
+//                   | STATIC
+//                   | VIRTUAL
+//                   | SEALED
+//                   | OVERRIDE
+//                   | ABSTRACT
+//                   | EXTERN
+//                   | UNSAFE
+//                   ;
+
+// accessor-declarations:
+// get-accessor-declaration   set-accessor-declarationopt
+// set-accessor-declaration   get-accessor-declarationopt
+
+AccessorDeclarations
+                   : GetAccessorDeclaration
+                   | GetAccessorDeclaration SetAccessorDeclaration
+                   | SetAccessorDeclaration
+                   | SetAccessorDeclaration GetAccessorDeclaration
+                   ;
+                   
+// get-accessor-declaration:
+// attributesopt   accessor-modifieropt    get   accessor-body
+
+GetAccessorDeclaration
+                   : AttributesOpt                  GET AccessorBody
+                   | AttributesOpt /*Accessor*/Modifier GET AccessorBody
+                   ;
+
+// set-accessor-declaration:
+// attributesopt   accessor-modifieropt   set   accessor-body
+
+SetAccessorDeclaration
+                   : AttributesOpt                  SET AccessorBody
+                   | AttributesOpt /*Accessor*/Modifier SET AccessorBody
+                   ;
+
+// accessor-modifier:
+// protected
+// internal
+// private
+// protected   internal
+// internal   protected
+
+//AccessorModifier   : PROTECTED
+//                   | PROTECTED INTERNAL
+//                   | INTERNAL
+//                   | INTERNAL PROTECTED
+//                   | PRIVATE
+//                   ;
+
+// accessor-body:
+// block
+// ;
+
+AccessorBody       : Block
+                   | SEMICOLON
+                   ;
+
+// event-declaration:
+// attributesopt   event-modifiersopt   event   type   variable-declarators   ;
+// attributesopt   event-modifiersopt   event   type   member-name   {   event-accessor-declarations   }
+
+EventDeclaration   : AttributesOpt                    EVENT Type VariableDeclarators SEMICOLON
+                   | AttributesOpt /*Event*/Modifiers EVENT Type VariableDeclarators SEMICOLON
+                   | AttributesOpt                    EVENT Type MemberName 
+                                        LBRACE EventAccessorDeclarations RBRACE
+                   | AttributesOpt /*Event*/Modifiers EVENT Type MemberName 
+                                        LBRACE EventAccessorDeclarations RBRACE
+                   ;
+
+//EventModifiersOpt  :  // empty
+//                   | EventModifiers
+//                   ;
+                   
+// event-modifiers:
+// event-modifier
+// event-modifiers   event-modifier
+
+//EventModifiers     :                EventModifier
+//                   | EventModifiers EventModifier
+//                   ;
+
+// event-modifier:
+// new
+// public
+// protected
+// internal
+// private
+// static
+// virtual
+// sealed
+// override
+// abstract
+// extern
+
+//EventModifier      : NEW
+//                   | PUBLIC
+//                   | PROTECTED
+//                   | INTERNAL
+//                   | PRIVATE
+//                   | STATIC
+//                   | VIRTUAL
+//                   | SEALED
+//                   | OVERRIDE
+//                   | ABSTRACT
+//                   | EXTERN
+//                   | UNSAFE
+//                   ;
+
+// event-accessor-declarations:
+// add-accessor-declaration   remove-accessor-declaration
+// remove-accessor-declaration   add-accessor-declaration
+
+EventAccessorDeclarations
+                   : AddAccessorDeclaration RemoveAccessorDeclaration
+                   | RemoveAccessorDeclaration AddAccessorDeclaration
+                   ;
+
+// add-accessor-declaration:
+// attributesopt   add   block
+
+AddAccessorDeclaration
+                   : AttributesOpt ADD Block
+                   ;
+
+// remove-accessor-declaration:
+// attributesopt   remove   block
+
+RemoveAccessorDeclaration
+                   : AttributesOpt REMOVE Block
+                   ;
+
+// indexer-declaration:
+// attributesopt   indexer-modifiersopt   indexer-declarator   {   accessor-declarations   }
+
+IndexerDeclaration : AttributesOpt                  IndexerDeclarator LBRACE AccessorDeclarations RBRACE
+                   | AttributesOpt /*Indexer*/Modifiers IndexerDeclarator LBRACE AccessorDeclarations RBRACE
+                   ;
+
+// indexer-modifiers:
+// indexer-modifier
+// indexer-modifiers   indexer-modifier
+
+//IndexerModifiers   :                  IndexerModifier
+//                   | IndexerModifiers IndexerModifier
+//                   ;
+
+// indexer-modifier:
+// new
+// public
+// protected
+// internal
+// private 
+// virtual
+// sealed
+// override
+// abstract
+// extern
+
+//IndexerModifier    : NEW
+//                   | PUBLIC
+//                   | PROTECTED
+//                   | INTERNAL
+//                   | PRIVATE 
+//                   | VIRTUAL
+//                   | SEALED
+//                   | OVERRIDE
+//                   | ABSTRACT
+//                   | EXTERN
+//                   | UNSAFE
+//                   ;
+
+// indexer-declarator:
+// type   this   [   formal-parameter-list   ]
+// type   interface-type   .   this   [   formal-parameter-list   ]
+
+IndexerDeclarator  : Type                   THIS LBRACKET FormalParameterList RBRACKET
+                   | Type /*Interface*/Type DOT THIS LBRACKET FormalParameterList RBRACKET
+                   ;
+
+// operator-declaration:
+// attributesopt   operator-modifiers   operator-declarator   operator-body
+
+OperatorDeclaration: AttributesOpt /*Operator*/Modifiers OperatorDeclarator OperatorBody
+                   ;
+
+// operator-modifiers:
+// operator-modifier
+// operator-modifiers   operator-modifier
+
+//OperatorModifiers  :                   OperatorModifier
+//                   | OperatorModifiers OperatorModifier
+//                   ;
+
+// operator-modifier:
+// public
+// static
+// extern
+
+//OperatorModifier   : PUBLIC
+//                   | STATIC
+//                   | EXTERN
+//                   | UNSAFE
+//                   ;
+
+// operator-declarator:
+// unary-operator-declarator
+// binary-operator-declarator
+// conversion-operator-declarator
+
+// Simplification to avoid reduce/reduce conflicts
+// on + and - signs.
+OperatorDeclarator
+                // : UnaryOperatorDeclarator
+                // | BinaryOperatorDeclarator
+				   : UnaryOrBinaryOperatorDeclarator
+                   | ConversionOperatorDeclarator
+                   ;
+
+// Common production for both binary & unary operators.
+UnaryOrBinaryOperatorDeclarator
+                   : Type OPERATOR OverloadableOperator LPAREN Type IDENTIFIER                       RPAREN
+				   | Type OPERATOR OverloadableOperator LPAREN Type IDENTIFIER COMMA Type IDENTIFIER RPAREN
+				   ;
+				   
+OverloadableOperator
+                   : PLUS         //  +
+                   | MINUS        //  -
+                   | EXCLAMATION  //  !
+                   | TILDE        //  ~
+                   | DBL_PLUS     //  ++
+                   | DBL_MINUS    //  --
+                   | TRUE
+                   | FALSE
+
+                // : PLUS           //  +
+                // | MINUS          //  -
+                   | STAR           //  *
+                   | SLASH          //  /
+                   | PERCENT        //  %
+                   | AMPERSAND      //  &
+                   | VERTICAL       //  |
+                   | CARET          //  ^
+                   | DBL_LESS       //  <<
+                   | DBL_GREATER    // right-shift
+                   | DBL_EQUAL      //  ==
+                   | EXCL_EQUAL     //  !=
+                   | GREATER        //  >
+                   | LESS           //  <
+                   | GREATER_EQUAL  //  >=
+                   | LESS_EQUAL     //  <=
+                   ;
+
+// unary-operator-declarator:
+// type   operator   overloadable-unary-operator   (   type   identifier   )
+
+//UnaryOperatorDeclarator
+//                   : Type OPERATOR OverloadableUnaryOperator LPAREN Type IDENTIFIER RPAREN
+//                   ;
+
+// overloadable-unary-operator:  one of
+// +   -   !   ~   ++   --   true   false
+
+//OverloadableUnaryOperator
+//                   : PLUS         //  +
+//                   | MINUS        //  -
+//                   | EXCLAMATION  //  !
+//                   | TILDE        //  ~
+//                   | DBL_PLUS     //  ++
+//                   | DBL_MINUS    //  --
+//                   | TRUE
+//                   | FALSE
+//                   ;
+				   
+// binary-operator-declarator:
+// type   operator   overloadable-binary-operator   (   type   identifier   ,   type   identifier   )
+
+//BinaryOperatorDeclarator
+//                   : Type OPERATOR OverloadableBinaryOperator 
+//                            LPAREN Type IDENTIFIER COMMA TYPE IDENTIFIER RPAREN
+//                   ;
+
+// overloadable-binary-operator:
+// +
+// -
+// *
+// /
+// %
+// &
+// |
+// ^
+// <<
+// right-shift
+// ==
+// !=
+// >
+// <
+// >=
+// <=
+
+//OverloadableBinaryOperator
+//                   : PLUS           //  +
+//                   | MINUS          //  -
+//                   | STAR           //  *
+//                   | SLASH          //  /
+//                   | PERCENT        //  %
+//                   | AMPERSAND      //  &
+//                   | VERTICAL       //  |
+//                   | CARET          //  ^
+//                   | DBL_LESS       //  <<
+//                   | DBL_GREATER    // right-shift
+//                   | DBL_EQUAL      //  ==
+//                   | EXCL_EQUAL     //  !=
+//                   | GREATER        //  >
+//                   | LESS           //  <
+//                   | GREATER_EQUAL  //  >=
+//                   | LESS_EQUAL     //  <=
+//                   ;
+
+// conversion-operator-declarator:
+// implicit   operator   type   (   type   identifier   )
+// explicit   operator   type   (   type   identifier   )
+
+ConversionOperatorDeclarator
+                   : IMPLICIT OPERATOR Type LPAREN Type IDENTIFIER RPAREN
+                   | EXPLICIT OPERATOR Type LPAREN Type IDENTIFIER RPAREN
+                   ;
+
+// operator-body:
+// block
+// ;
+
+OperatorBody       : Block
+                   | SEMICOLON
+                   ;
+
+// constructor-declaration:
+// attributesopt   constructor-modifiersopt   constructor-declarator   constructor-body
+
+ConstructorDeclaration
+                   : AttributesOpt                      ConstructorDeclarator ConstructorBody
+                   | AttributesOpt /*Constructor*/Modifiers ConstructorDeclarator ConstructorBody
+                   ;
+
+// constructor-modifiers:
+// constructor-modifier
+// constructor-modifiers   constructor-modifier
+
+//ConstructorModifiers
+//                   :                      ConstructorModifier
+//                   | ConstructorModifiers ConstructorModifier
+//                   ;
+
+// constructor-modifier:
+// public
+// protected
+// internal
+// private
+// extern
+
+//ConstructorModifier: PUBLIC
+//                   | PROTECTED
+//                   | INTERNAL
+//                   | PRIVATE
+//                   | EXTERN
+//                   | UNSAFE
+//                   ;
+
+// constructor-declarator:
+// identifier   (   formal-parameter-listopt   )   constructor-initializeropt
+
+ConstructorDeclarator
+                   : IDENTIFIER LPAREN                     RPAREN
+                   | IDENTIFIER LPAREN                     RPAREN ConstructorInitializer
+                   | IDENTIFIER LPAREN FormalParameterList RPAREN
+                   | IDENTIFIER LPAREN FormalParameterList RPAREN ConstructorInitializer
+                   ;
+
+// constructor-initializer:
+// :   base   (   argument-listopt   )
+// :   this   (   argument-listopt   )
+
+ConstructorInitializer
+                   : COLON BASE LPAREN              RPAREN
+                   | COLON BASE LPAREN ArgumentList RPAREN
+                   | COLON THIS LPAREN              RPAREN
+                   | COLON THIS LPAREN ArgumentList RPAREN
+                   ;
+
+// constructor-body:
+// block
+// ;
+
+ConstructorBody    : Block
+                   | SEMICOLON
+                   ;
+
+// static-constructor-declaration:
+// attributesopt   static-constructor-modifiers  identifier   (   )   static-constructor-body
+
+StaticConstructorDeclaration
+                   : AttributesOpt /*StaticConstructor*/Modifiers IDENTIFIER LPAREN RPAREN StaticConstructorBody
+                   ;
+
+// static-constructor-modifiers:
+// externopt static
+// static externopt
+//
+// B.3 Grammar extensions for unsafe code
+//
+// static-constructor-modifiers:
+// externopt   unsafeopt   static
+// unsafeopt   externopt   static
+// externopt   static   unsafeopt 
+// unsafeopt   static   externopt
+// static   externopt   unsafeopt
+// static   unsafeopt   externopt
+
+//StaticConstructorModifiers
+//                   :                            StaticConstructorModifier
+//                   | StaticConstructorModifiers StaticConstructorModifier
+//                   ;
+				   
+//StaticConstructorModifier
+//                   : STATIC
+//                   | EXTERN
+//                   | UNSAFE
+//                   ;
+
+// static-constructor-body:
+// block
+// ;
+
+StaticConstructorBody
+                   : Block
+                   | SEMICOLON
+                   ;
+
+// destructor-declaration:
+// attributesopt   externopt   ~   identifier   (   )    destructor-body
+//
+// B.3 Grammar extensions for unsafe code
+//
+// destructor-declaration:
+// attributesopt   externopt   unsafeopt   ~   identifier   (   )    destructor-body
+// attributesopt   unsafeopt   externopt   ~   identifier   (   )    destructor-body
+
+DestructorDeclaration
+                   : AttributesOpt                     TILDE IDENTIFIER LPAREN RPAREN DestructorBody
+                   | AttributesOpt /*Destructor*/Modifiers TILDE IDENTIFIER LPAREN RPAREN DestructorBody
+                   ;
+				   
+//DestructorModifiers: EXTERN
+//                   | EXTERN UNSAFE
+//                   | UNSAFE
+//                   | UNSAFE EXTERN
+//                   ;
+
+// destructor-body:
+// block
+// ;
+
+DestructorBody     : Block
+                   | SEMICOLON
+                   ;
+
+// B.2.8 Structs
+
+// struct-declaration:
+// attributesopt   struct-modifiersopt   partialopt   struct   identifier   type-parameter-listopt
+// 		struct-interfacesopt   type-parameter-constraints-clausesopt   struct-body   ;opt
+
+StructDeclaration  : AttributesOpt                     /*PartialOpt*/ STRUCT IDENTIFIER TypeParameterListOpt
+                         StructInterfacesOpt TypeParameterConstraintsClausesOpt StructBody SemicolonOpt
+                   | AttributesOpt /*Struct*/Modifiers /*PartialOpt*/ STRUCT IDENTIFIER TypeParameterListOpt
+                         StructInterfacesOpt TypeParameterConstraintsClausesOpt StructBody SemicolonOpt
+                   ;
+
+//StructModifiersOpt :  // empty
+//                   | StructModifiers
+//                   ;
+				   
+StructInterfacesOpt: ClassBaseOpt
+                   //:  // empty
+                   //| StructInterfaces
+				   ;
+                   
+SemicolonOpt       :  // Empty
+                   | SEMICOLON
+                   ;
+
+// struct-modifiers:
+// struct-modifier
+// struct-modifiers   struct-modifier
+
+//StructModifiers    :                 StructModifier
+//                   | StructModifiers StructModifier
+//                   ;
+
+// struct-modifier:
+// new
+// public
+// protected
+// internal
+// private
+
+//StructModifier     : NEW
+//                   | PUBLIC
+//                   | PROTECTED
+//                   | INTERNAL
+//                   | PRIVATE
+//                   | UNSAFE
+//                   ;
+
+// struct-interfaces:
+// :   interface-type-list
+
+//StructInterfaces   : COLON InterfaceTypeList
+//                   ;
+
+// struct-body:
+// {   struct-member-declarationsopt   }
+
+StructBody         : LBRACE                          RBRACE
+                   | LBRACE StructMemberDeclarations RBRACE
+                   ;
+
+// struct-member-declarations:
+// struct-member-declaration
+// struct-member-declarations   struct-member-declaration
+
+StructMemberDeclarations
+                   :                          StructMemberDeclaration
+                   | StructMemberDeclarations StructMemberDeclaration
+                   ;
+
+// struct-member-declaration:
+// constant-declaration
+// field-declaration
+// method-declaration
+// property-declaration
+// event-declaration
+// indexer-declaration
+// operator-declaration
+// constructor-declaration
+// static-constructor-declaration
+// type-declaration
+//
+// B.3 Grammar extensions for unsafe code
+//
+// struct-member-declaration:
+// ...
+// fixed-size-buffer-declaration
+
+StructMemberDeclaration
+                   : ConstantDeclaration
+                   | FieldDeclaration
+                   | MethodDeclaration
+                   | PropertyDeclaration
+                   | EventDeclaration
+                   | IndexerDeclaration
+                   | OperatorDeclaration
+                   | ConstructorDeclaration
+                   | StaticConstructorDeclaration
+                   | TypeDeclaration
+				   
+				   | FixedSizeBufferDeclaration
+                   ;
+
+// B.2.9 Arrays
+
+// array-type:
+// non-array-type   rank-specifiers
+
+ArrayType          : NonArrayType RankSpecifiers
+                   ;
+
+// non-array-type:
+// type
+
+//NonArrayType       : Type
+//                   ;
+
+// rank-specifiers:
+// rank-specifier
+// rank-specifiers   rank-specifier
+
+//RankSpecifiers     :                RankSpecifier
+//                   | RankSpecifiers RankSpecifier
+//                   ;
+
+// rank-specifier:
+// [   dim-separatorsopt   ]
+
+//RankSpecifier      : LBRACKET               RBRACKET
+//                   | LBRACKET DimSeparators RBRACKET
+//                   ;
+
+// dim-separators:
+// ,
+// dim-separators   ,
+
+//DimSeparators      :               COMMA
+//                   | DimSeparators COMMA
+//                   ;
+
+// array-initializer:
+// {   variable-initializer-listopt   }
+// {   variable-initializer-list   ,   }
+
+ArrayInitializer   : LBRACE                               RBRACE
+                   | LBRACE VariableInitializerList       RBRACE
+                   | LBRACE VariableInitializerList COMMA RBRACE
+                   ;
+
+// variable-initializer-list:
+// variable-initializer
+// variable-initializer-list   ,   variable-initializer
+
+VariableInitializerList
+                   :                               VariableInitializer
+                   | VariableInitializerList COMMA VariableInitializer
+                   ;
+
+// variable-initializer:
+// expression
+// array-initializer
+
+VariableInitializer: Expression
+                   | ArrayInitializer
+                   ;
+
+// B.2.10 Interfaces
+
+// interface-declaration:
+// attributesopt   interface-modifiersopt   partialopt   interface   
+// 		identifier   variant-type-parameter-listopt   interface-baseopt
+// 		type-parameter-constraints-clausesopt   interface-body   ;opt
+
+InterfaceDeclaration
+                   : AttributesOpt                        /*PartialOpt*/ INTERFACE IDENTIFIER
+                         VariantTypeParameterListOpt InterfaceBaseOpt
+                         TypeParameterConstraintsClausesOpt InterfaceBody SemicolonOpt
+                   | AttributesOpt /*Interface*/Modifiers /*PartialOpt*/ INTERFACE IDENTIFIER
+                         VariantTypeParameterListOpt InterfaceBaseOpt
+                         TypeParameterConstraintsClausesOpt InterfaceBody SemicolonOpt
+                   ;
+
+//InterfaceModifiersOpt
+//                   :  // empty
+//                   | InterfaceModifiers
+//                   ;
+				   
+// interface-modifiers:
+// interface-modifier
+// interface-modifiers   interface-modifier
+
+//InterfaceModifiers :                    InterfaceModifier
+//                   | InterfaceModifiers InterfaceModifier
+//                   ;
+
+// interface-modifier:
+// new
+// public
+// protected
+// internal
+// private
+
+//InterfaceModifier  : NEW
+//                   | PUBLIC
+//                   | PROTECTED
+//                   | INTERNAL
+//                   | PRIVATE
+//                   | UNSAFE
+//                   ;
+
+VariantTypeParameterListOpt
+                   :  // empty
+                   | VariantTypeParameterList
+                   ;
+                   
+// variant-type-parameter-list:
+// <   variant-type-parameters   >
+
+VariantTypeParameterList
+                   : LESS VariantTypeParameters GREATER
+                   ;
+
+// variant-type-parameters:
+// attributesopt  variance-annotationopt  type-parameter
+// variant-type-parameters   ,   attributesopt   variance-annotationopt  type-parameter
+
+VariantTypeParameters
+                   :                             AttributesOpt VarianceAnnotationOpt IDENTIFIER // TypeParameter
+                   | VariantTypeParameters COMMA AttributesOpt VarianceAnnotationOpt IDENTIFIER // TypeParameter
+                   ;
+
+VarianceAnnotationOpt
+                   :  // empty
+                   | VarianceAnnotation
+                   ;
+                   
+// variance-annotation:
+// in
+// out
+
+VarianceAnnotation : IN 
+                   | OUT
+                   ;
+
+InterfaceBaseOpt   : ClassBaseOpt
+               //    :  // empty
+               //    | InterfaceBase
+                   ;
+                   
+// interface-base:
+// :   interface-type-list
+
+//InterfaceBase      : COLON InterfaceTypeList
+//                   ;
+
+// interface-body:
+// {   interface-member-declarationsopt   }
+
+InterfaceBody      : LBRACE                             RBRACE
+                   | LBRACE InterfaceMemberDeclarations RBRACE
+                   ;
+
+// interface-member-declarations:
+// interface-member-declaration
+// interface-member-declarations   interface-member-declaration
+
+InterfaceMemberDeclarations
+                   :                             InterfaceMemberDeclaration
+                   | InterfaceMemberDeclarations InterfaceMemberDeclaration
+                   ;
+
+// interface-member-declaration:
+// interface-method-declaration
+// interface-property-declaration
+// interface-event-declaration
+// interface-indexer-declaration
+
+InterfaceMemberDeclaration
+                   : InterfaceMethodDeclaration
+                   | InterfacePropertyDeclaration
+                   | InterfaceEventDeclaration
+                   | InterfaceIndexerDeclaration
+                   ;
+
+// interface-method-declaration:
+// attributesopt   newopt   return-type   identifier   type-parameter-list
+// 		(   formal-parameter-listopt   )   type-parameter-constraints-clausesopt   ;
+
+InterfaceMethodDeclaration
+                   : AttributesOpt NewOpt ReturnType IDENTIFIER TypeParameterListOpt
+                      LPAREN FormalParameterListOpt RPAREN TypeParameterConstraintsClausesOpt SEMICOLON
+                   ;
+
+NewOpt             :  // empty
+                   | NEW
+                   ;
+                   
+// interface-property-declaration:
+// attributesopt   newopt   type   identifier   {   interface-accessors   }
+
+InterfacePropertyDeclaration
+                   : AttributesOpt NewOpt Type IDENTIFIER LBRACE InterfaceAccessors RBRACE
+                   ;
+
+// interface-accessors:
+// attributesopt   get   ;
+// attributesopt   set   ;
+// attributesopt   get   ;   attributesopt   set   ;
+// attributesopt   set   ;   attributesopt   get   ;
+
+InterfaceAccessors : AttributesOpt GET SEMICOLON
+                   | AttributesOpt GET SEMICOLON AttributesOpt SET SEMICOLON
+                   | AttributesOpt SET SEMICOLON
+                   | AttributesOpt SET SEMICOLON AttributesOpt GET SEMICOLON
+                   ;
+
+// interface-event-declaration:
+// attributesopt   newopt   event   type   identifier   ;
+
+InterfaceEventDeclaration
+                   : AttributesOpt NewOpt EVENT Type IDENTIFIER SEMICOLON
+                   ;
+
+// interface-indexer-declaration:
+// attributesopt   newopt   type   this   [   formal-parameter-list   ]   {   interface-accessors   }
+
+InterfaceIndexerDeclaration
+                   : AttributesOpt NewOpt Type THIS LBRACKET FormalParameterList RBRACKET
+                        LBRACE InterfaceAccessors RBRACE
+                   ;
+
+// B.2.11 Enums
+
+// enum-declaration:
+// attributesopt   enum-modifiersopt   enum   identifier   enum-baseopt   enum-body   ;opt
+
+EnumDeclaration    : AttributesOpt                   ENUM IDENTIFIER EnumBaseOpt EnumBody SemicolonOpt
+                   | AttributesOpt /*Enum*/Modifiers ENUM IDENTIFIER EnumBaseOpt EnumBody SemicolonOpt
+                   ;
+
+//EnumModifiersOpt   :  // empty
+//                   | EnumModifiers
+//                   ;
+				   
+EnumBaseOpt        :  // empty
+                   | EnumBase
+				   ;
+				   
+// enum-base:
+// :   integral-type
+
+EnumBase           : COLON IntegralType
+                   ;
+
+// enum-body:
+// {   enum-member-declarationsopt   }
+// {   enum-member-declarations   ,   }
+
+EnumBody           : LBRACE                              RBRACE
+                   | LBRACE EnumMemberDeclarations       RBRACE
+                   | LBRACE EnumMemberDeclarations COMMA RBRACE
+                   ;
+
+// enum-modifiers:
+// enum-modifier
+// enum-modifiers   enum-modifier
+
+//EnumModifiers      :               EnumModifier
+//                   | EnumModifiers EnumModifier
+//                   ;
+
+// enum-modifier:
+// new
+// public
+// protected
+// internal
+// private
+
+//EnumModifier       : NEW
+//                   | PUBLIC
+//                   | PROTECTED
+//                   | INTERNAL
+//                   | PRIVATE
+//                   ;
+
+// enum-member-declarations:
+// enum-member-declaration
+// enum-member-declarations   ,   enum-member-declaration
+
+EnumMemberDeclarations
+                   :                              EnumMemberDeclaration
+                   | EnumMemberDeclarations COMMA EnumMemberDeclaration
+                   ;
+
+// enum-member-declaration:
+// attributesopt   identifier
+// attributesopt   identifier   =   constant-expression
+
+EnumMemberDeclaration
+                   : AttributesOpt IDENTIFIER
+                   | AttributesOpt IDENTIFIER EQUAL Expression
+                   ;
+
+// B.2.12 Delegates
+
+// delegate-declaration:
+// attributesopt   delegate-modifiersopt   delegate   return-type   
+// 		identifier  variant-type-parameter-listopt   
+// 		(   formal-parameter-listopt   )   type-parameter-constraints-clausesopt   ;
+
+DelegateDeclaration: AttributesOpt                       DELEGATE ReturnType IDENTIFIER
+                       VariantTypeParameterListOpt LPAREN FormalParameterListOpt RPAREN
+                          TypeParameterConstraintsClausesOpt SEMICOLON
+                   | AttributesOpt /*Delegate*/Modifiers DELEGATE ReturnType IDENTIFIER
+                       VariantTypeParameterListOpt LPAREN FormalParameterListOpt RPAREN
+                          TypeParameterConstraintsClausesOpt SEMICOLON
+                   ;
+
+//DelegateModifiersOpt
+//                   :  // empty
+//                   | DelegateModifiers
+//                   ;
+				   
+// delegate-modifiers:
+// delegate-modifier
+// delegate-modifiers   delegate-modifier
+
+//DelegateModifiers  :                   DelegateModifier
+//                   | DelegateModifiers DelegateModifier
+//                   ;
+
+// delegate-modifier:
+// new
+// public
+// protected
+// internal
+// private
+
+//DelegateModifier   : NEW
+//                   | PUBLIC
+//                   | PROTECTED
+//                   | INTERNAL
+//                   | PRIVATE
+//                   | UNSAFE
+//                   ;
+
+// B.2.13 Attributes
+
+// global-attributes:
+// global-attribute-sections
+
+GlobalAttributes   : GlobalAttributeSections
+                   ;
+
+// global-attribute-sections:
+// global-attribute-section
+// global-attribute-sections   global-attribute-section
+
+GlobalAttributeSections
+                   :                         GlobalAttributeSection
+                   | GlobalAttributeSections GlobalAttributeSection
+                   ;
+
+// global-attribute-section:
+// [   global-attribute-target-specifier   attribute-list   ]
+// [   global-attribute-target-specifier   attribute-list   ,   ]
+
+GlobalAttributeSection
+                   : LBRACKET GlobalAttributeTargetSpecifier AttributeList       RBRACKET
+                   | LBRACKET GlobalAttributeTargetSpecifier AttributeList COMMA RBRACKET
+                   ;
+
+// global-attribute-target-specifier:
+// global-attribute-target   :
+
+GlobalAttributeTargetSpecifier
+                   : GlobalAttributeTarget  COLON
+                   ;
+
+// global-attribute-target:
+// assembly
+// module
+
+GlobalAttributeTarget
+                   : ASSEMBLY
+                   | MODULE
+                   ;
+
+// attributes:
+// attribute-sections
+
+Attributes         : AttributeSections
+                   ;
+
+// attribute-sections:
+// attribute-section
+// attribute-sections   attribute-section
+
+AttributeSections  :                   AttributeSection
+                   | AttributeSections AttributeSection
+                   ;
+
+// attribute-section:
+// [   attribute-target-specifieropt   attribute-list   ]
+// [   attribute-target-specifieropt   attribute-list   ,   ]
+
+AttributeSection   : LBRACKET AttributeTargetSpecifierOpt AttributeList       RBRACKET
+                   | LBRACKET AttributeTargetSpecifierOpt AttributeList COMMA RBRACKET
+                   ;
+
+AttributeTargetSpecifierOpt
+                   :  // empty
+                   | AttributeTargetSpecifier
+                   ;
+                   
+// attribute-target-specifier:
+// attribute-target   :
+
+AttributeTargetSpecifier
+                   : AttributeTarget COLON
+                   ;
+
+// attribute-target:
+// field
+// event
+// method
+// param
+// property
+// return
+// type
+
+AttributeTarget    : FIELD
+                   | EVENT
+                   | METHOD
+                   | PARAM
+                   | PROPERTY
+                   | RETURN
+                   | TYPE
+                   ;
+
+// attribute-list:
+// attribute
+// attribute-list   ,   attribute
+
+AttributeList      :                     Attribute
+                   | AttributeList COMMA Attribute
+                   ;
+
+// attribute:
+// attribute-name   attribute-argumentsopt
+
+Attribute          : AttributeName
+                   | AttributeName AttributeArguments
+                   ;
+
+// attribute-name:
+// type-name
+
+AttributeName      : TypeName
+                   ;
+
+// attribute-arguments:
+// (   positional-argument-listopt   )
+// (   positional-argument-list   ,   named-argument-list   )
+// (   named-argument-list   )
+
+AttributeArguments : LPAREN                                                RPAREN
+                   | LPAREN PositionalArgumentList                         RPAREN
+                   | LPAREN PositionalArgumentList COMMA NamedArgumentList RPAREN
+                   | LPAREN                              NamedArgumentList RPAREN
+                   ;
+
+// positional-argument-list:
+// positional-argument
+// positional-argument-list   ,   positional-argument
+
+PositionalArgumentList
+                   :                              PositionalArgument
+                   | PositionalArgumentList COMMA PositionalArgument
+                   ;
+
+// positional-argument:
+// argument-nameopt   attribute-argument-expression
+//
+// argument-name:
+//     identifier   :
+//
+// attribute-argument-expression:
+// expression
+
+PositionalArgument :                  Expression
+                   | IDENTIFIER COLON Expression
+                   ;
+
+// named-argument-list:
+// named-argument
+// named-argument-list   ,   named-argument
+
+NamedArgumentList  :                         NamedArgument
+                   | NamedArgumentList COMMA NamedArgument
+                   ;
+
+// named-argument:
+// identifier   =   attribute-argument-expression
+//
+// attribute-argument-expression:
+// expression
+
+NamedArgument      : IDENTIFIER EQUAL Expression
+                   ;
+
+// B.3 Grammar extensions for unsafe code
+/*
+class-modifier:
+...
+unsafe
+struct-modifier:
+...
+unsafe
+interface-modifier:
+...
+unsafe
+delegate-modifier:
+...
+unsafe
+field-modifier:
+...
+unsafe
+method-modifier:
+...
+unsafe
+property-modifier:
+...
+unsafe
+event-modifier:
+...
+unsafe
+indexer-modifier:
+...
+unsafe
+operator-modifier:
+...
+unsafe
+constructor-modifier:
+...
+unsafe
+*/
+/*
+destructor-declaration:
+attributesopt   externopt   unsafeopt   ~   identifier   (   )    destructor-body
+attributesopt   unsafeopt   externopt   ~   identifier   (   )    destructor-body
+*/
+/*
+static-constructor-modifiers:
+externopt   unsafeopt   static
+unsafeopt   externopt   static
+externopt   static   unsafeopt 
+unsafeopt   static   externopt
+static   externopt   unsafeopt
+static   unsafeopt   externopt
+*/
+/*
+embedded-statement:
+...
+unsafe-statement 
+fixed-statement
+*/
+
+// unsafe-statement:
+// unsafe   block
+
+UnsafeStatement    : UNSAFE Block
+                   ;
+
+// type:
+// ...
+// pointer-type
+
+// pointer-type:
+// unmanaged-type   *
+// void   *
+
+PointerType        : UnmanagedType STAR
+                   | VOID          STAR
+				   ;
+
+// unmanaged-type:
+// type
+
+UnmanagedType      : Type
+                   ;
+
+// primary-no-array-creation-expression:
+// ...
+// pointer-member-access
+// pointer-element-access
+// sizeof-expression
+
+// unary-expression:
+// ...
+// pointer-indirection-expression
+// addressof-expression
+
+// pointer-indirection-expression:
+// *   unary-expression
+
+PointerIndirectionExpression
+                   : STAR UnaryExpression
+				   ;
+
+// pointer-member-access:
+// primary-expression   ->   identifier  type-argument-listopt
+
+PointerMemberAccess: PrimaryExpression MINUS_GREATER IDENTIFIER
+                   | PrimaryExpression MINUS_GREATER IDENTIFIER TypeArgumentList
+				   ;
+
+// pointer-element-access:
+// primary-no-array-creation-expression   [   expression   ]
+
+PointerElementAccess
+                   : PrimaryNoArrayCreationExpression LBRACKET Expression RBRACKET
+				   ;
+
+// addressof-expression:
+// &   unary-expression
+
+// For the moment, I do not consider '&expr' construct
+// because it gives a lot of reduce/reduce conflicts...
+//
+//AddressofExpression: AMPERSAND UnaryExpression
+//                   ;
+
+// sizeof-expression:
+// sizeof   (   unmanaged-type   )
+
+SizeofExpression   : SIZEOF LPAREN UnmanagedType RPAREN
+                   ;
+
+// fixed-statement:
+// fixed   (   pointer-type   fixed-pointer-declarators   )   embedded-statement
+
+FixedStatement     : FIXED LPAREN PointerType FixedPointerDeclarators RPAREN EmbeddedStatement
+                   ;
+
+// fixed-pointer-declarators:
+// fixed-pointer-declarator
+// fixed-pointer-declarators   ,   fixed-pointer-declarator
+
+FixedPointerDeclarators
+                   :                               FixedPointerDeclarator
+				   | FixedPointerDeclarators COMMA FixedPointerDeclarator
+				   ;
+
+// fixed-pointer-declarator:
+// identifier   =   fixed-pointer-initializer
+//
+// fixed-pointer-initializer:
+// &   variable-reference
+// expression
+//
+// variable-reference:
+//     expression
+
+FixedPointerDeclarator
+                   : IDENTIFIER EQUAL AMPERSAND Expression // VariableReference
+				   | IDENTIFIER EQUAL           Expression
+				   ;
+
+// struct-member-declaration:
+// …
+// fixed-size-buffer-declaration
+
+// fixed-size-buffer-declaration:
+// attributesopt   fixed-size-buffer-modifiersopt   fixed   buffer-element-type
+// 		fixed-size-buffer-declarators   ;
+//
+// buffer-element-type:
+// type
+
+FixedSizeBufferDeclaration
+                   : AttributesOpt                          FIXED Type FixedSizeBufferDeclarators SEMICOLON
+                   | AttributesOpt /*FixedSizeBuffer*/Modifiers FIXED Type FixedSizeBufferDeclarators SEMICOLON
+				   ;
+
+// fixed-size-buffer-modifiers:
+// fixed-size-buffer-modifier
+// fixed-size-buffer-modifier   fixed-size-buffer-modifiers
+
+//FixedSizeBufferModifiers
+//                   : FixedSizeBufferModifier
+//                   | FixedSizeBufferModifier FixedSizeBufferModifiers
+//                   ;
+
+// fixed-size-buffer-modifier:
+// new
+// public
+// protected
+// internal
+// private
+// unsafe
+
+//FixedSizeBufferModifier
+//                   : NEW
+//                   | PUBLIC
+//                   | PROTECTED
+//                   | INTERNAL
+//                   | PRIVATE
+//                   | UNSAFE
+//                   ;
+
+// fixed-size-buffer-declarators:
+// fixed-size-buffer-declarator
+// fixed-size-buffer-declarator   fixed-size-buffer-declarators
+
+FixedSizeBufferDeclarators
+                   : FixedSizeBufferDeclarator
+				   | FixedSizeBufferDeclarator FixedSizeBufferDeclarators
+				   ;
+
+// fixed-size-buffer-declarator:
+// identifier   [   constant-expression   ]
+
+FixedSizeBufferDeclarator
+                   : IDENTIFIER LBRACKET Expression RBRACKET
+				   ;
+
+// local-variable-initializer:
+// …
+// stackalloc-initializer
+
+// stackalloc-initializer:
+// stackalloc   unmanaged-type   [   expression   ]
+
+StackallocInitializer
+                   : STACKALLOC UnmanagedType LBRACKET Expression RBRACKET
+				   ;
+
+%%
+
+
+/* EPILOGUE */
+
+void Metrics::CSParser::error( const location_type &l, const std::string &err_message )
+{
+    std::cerr << "Error: " << err_message " at " << l << "\n";
+}
