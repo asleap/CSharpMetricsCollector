@@ -58,3 +58,4 @@ fabric.properties
 
 lib/
 src/generated/
+cmake-build-debug/

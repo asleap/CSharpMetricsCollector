@@ -17,7 +17,7 @@ protected:
         std::string from_source((std::istreambuf_iterator<char>(source_file)),
                                 std::istreambuf_iterator<char>());
         std::istringstream source_stream(from_source);
-        lexer = new CSMetrics::Lexer(source_stream);
+        lexer = new CSMetrics::Lexer(source_stream, 0, 0);
     }
 
     virtual void tearDown() {

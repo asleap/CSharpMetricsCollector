@@ -8,15 +8,20 @@
 #include <stdexcept>
 #include <sstream>
 
-CSMetrics::Lexer::Lexer(std::istream& input, size_t number_of_lines)
-    : _input(input), _loc(location(1, 1)) {
+CSMetrics::Lexer::Lexer(std::istream &input, size_t number_of_lines)
+        : _input(input), _loc(location(1, 1)) {
     _chars_in_line.reserve(number_of_lines);
 }
 
-char CSMetrics::Lexer::get_char() {
-    _input >> std::noskipws >> _ch;
+void CSMetrics::Lexer::scanning_error(std::string message) {
+    std::cerr << message << ", _loc:" << _loc.lineno << ":" << _loc.charno << std::endl;
+    throw std::runtime_error(message + ", _loc:" + std::to_string(_loc.lineno) + ":" + std::to_string(_loc.charno));
+}
 
-    if (_input.eof()) {
+char CSMetrics::Lexer::get_char() {
+    if (_input.good()) {
+        _input.get(_ch);
+    } else {
         _ch = '\0';
     }
 
@@ -24,30 +29,42 @@ char CSMetrics::Lexer::get_char() {
         _loc.lineno++;
         _chars_in_line.push_back(_loc.charno + 1);
         _loc.charno = 1;
-    } else if (_ch == '\r') {
-        char tmp;
-        _input >> std::noskipws >> tmp;
-        if (tmp != '\n') {
-            _loc.lineno++;
-            _chars_in_line.push_back(_loc.charno + 1);
-            _loc.charno = 1;
-        } else {
-            _input.unget();
-        }
-    } else {
+    } else if (_ch != '\0') {
         _loc.charno++;
     }
 
     return _ch;
 }
 
-void CSMetrics::Lexer::unget_char() {
-    if (_loc.charno == 1 && _loc.lineno == 1)
-        return;
+char CSMetrics::Lexer::current() {
+    return _ch;
+}
 
-    if (_loc.charno > 1)
+std::string CSMetrics::Lexer::get_after(int n) {
+    if (n < 0) {
+        std::cerr << "n = " << n << ", n < 0" << std::endl;
+        throw std::invalid_argument("n = " + std::to_string(n) + ", n < 0");
+    } else if (n == 0) {
+        return std::string(1, _ch);
+    } else if (n == 1) {
+        return std::string(1, static_cast<char>(_input.peek()));
+    } else {
+        char *chars = new char[n];
+        std::streampos current_pos = _input.tellg();
+        _input.get(chars, n + 1);
+        _input.seekg(current_pos);
+        return std::string(chars);
+    }
+}
+
+void CSMetrics::Lexer::unget_char() {
+    if (_loc.charno == 1 && _loc.lineno == 1) {
+        return;
+    }
+
+    if (_loc.charno > 1) {
         _loc.charno--;
-    else if (_loc.charno == 1 && _loc.lineno > 1) {
+    } else if (_loc.charno == 1 && _loc.lineno > 1) {
         _loc.lineno--;
         _loc.charno = _chars_in_line[_loc.lineno - 1] - 1;
     }
@@ -56,15 +73,15 @@ void CSMetrics::Lexer::unget_char() {
     _input.unget();
 }
 
-char CSMetrics::Lexer::skip_whitespaces() {
+void CSMetrics::Lexer::skip_whitespaces() {
     while (true) {
-        char ch = get_char();
+        get_char();
 
-        switch (ch) {
+        switch (current()) {
             case '\0':
-                std::cerr << "Met eos/eof, _loc:" << _loc.lineno << ":" << _loc.charno << std::endl;
                 unget_char();
-                return ch;
+                std::cerr << "Met eos/eof, _loc:" << _loc.lineno << ":" << _loc.charno << std::endl;
+                return;
 
             case ' ':
             case '\t':
@@ -76,74 +93,54 @@ char CSMetrics::Lexer::skip_whitespaces() {
 
             default:
                 unget_char();
-                return ch;
+                return;
         }
     }
 }
 
-CSMetrics::Token CSMetrics::Lexer::scan_comment(location position) {
+CSMetrics::Token CSMetrics::Lexer::scan_comment() {
+    location start_loc = _loc;
     std::ostringstream comment;
+
     comment << get_char();
 
-    char ch = get_char();
-    comment << ch;
-
-    if (ch == '/') {
+    if (current() == '/') {
         // Handle one line comment
         while (true) {
-            ch = get_char();
+            get_char();
 
-            if (ch == '\r') {
-                char tmp = get_char();
-                if (tmp != '\n')
-                    break;
-                else {
-                    unget_char();
-                    continue;
-                }
-            }
-
-            if (ch == '\n' || _input.eof())
+            if (current() == '\n' || !_input.good())
                 break;
 
-            comment << ch;
+            comment << current();
         }
-    } else if (ch == '*') {
+    } else if (current() == '*') {
         // Handle multi line comment
-        bool prev_asterisk = false;
-
         while (true) {
-            ch = get_char();
-            comment << ch;
+            get_char();
+            comment << current();
 
-            if (prev_asterisk && ch == '/')
+            if (current() == '*' && get_after()[0] == '/')
                 break;
-
-            if (ch == '*')
-                prev_asterisk = true;
         }
     } else {
         // Not a comment
         unget_char();
-
-        throw std::runtime_error("Scanning not a comment, _loc:"
-                                     + std::to_string(_loc.lineno)
-                                     + ":"
-                                     + std::to_string(_loc.charno));
+        scanning_error("Scanning not a comment");
     }
 
-    return Token(span(position, _loc), comment.str(), Token::COMMENT);
+    return Token(span(start_loc, _loc), comment.str(), Token::COMMENT);
 }
 
-void CSMetrics::Lexer::extract_number(std::ostream& os, bool hex) {
+void CSMetrics::Lexer::extract_number(std::ostream &os, bool hex) {
     while (true) {
         get_char();
-        if (_ch >= '0' && _ch <= '9')
+        if (std::isdigit(current()))
             // Scan decimal
-            os << _ch;
-        else if (hex && ( (_ch >= 'a' && _ch <= 'f') || (_ch >= 'A' && _ch <= 'F')) )
+            os << current();
+        else if (hex && std::tolower(current()) >= 'a' && std::tolower(current()) <= 'f')
             // Scan hexadecimal right after ('0x' | '0X')
-            os << _ch;
+            os << current();
         else {
             unget_char();
             break;
@@ -151,101 +148,104 @@ void CSMetrics::Lexer::extract_number(std::ostream& os, bool hex) {
     }
 }
 
-CSMetrics::Token CSMetrics::Lexer::scan_integer_literal(CSMetrics::location position) {
+CSMetrics::Token CSMetrics::Lexer::scan_integer_literal() {
+    int lookahead = get_after()[0];
+    if (!std::isdigit(lookahead)) {
+        // Not an integer
+        scanning_error("Scanning not an integer");
+    }
+
+    location start_loc = _loc;
     std::ostringstream literal;
-    char ch = get_char();
-    if (ch == '0') {
-        literal << ch;
-        char tmp = get_char();
-        if (tmp == 'x' || tmp == 'X') {
+
+    get_char();
+    if (current() == '0') {
+        literal << current();
+        if (std::tolower(get_after()[0]) == 'x') {
             // Scan hexadecimal integer literal
-            literal << tmp;  // ('0x' | '0X')
+            literal << get_char();  // ('0x' | '0X')
             extract_number(literal, true);
         } else {
-            unget_char(); // Return not 'x' back to the stream
             // Scan decimal integer literal
             extract_number(literal);
         }
     } else {
         // Starts without 0
-        unget_char();
+        literal << current();
         extract_number(literal);
     }
 
     // Scan type suffix
-    ch = get_char();
-    if (ch == 'U' || ch == 'u') {
-        literal << ch;
-        ch = get_char();
-        if (ch == 'L' || ch == 'l') {
-            literal << ch;
-        } else
-            unget_char();
-    } else if (ch == 'L' || ch == 'l') {
-        literal << ch;
-        ch = get_char();
-        if (ch == 'U' || ch == 'u') {
-            literal << ch;
-        } else
-            unget_char();
-    } else
-        unget_char();
-    return Token(span(position, _loc), literal.str(), Token::INTEGER_LITERAL);
+    if (std::tolower(get_after()[0]) == 'u') {
+        literal << get_char();
+        if (std::tolower(get_after()[0]) == 'l') {
+            literal << get_char();
+        }
+    } else if (std::tolower(get_after()[0]) == 'l') {
+        literal << get_char();
+        if (std::tolower(get_after()[0]) == 'u') {
+            literal << get_char();
+        }
+    }
+
+    return Token(span(start_loc, _loc), literal.str(), Token::INTEGER_LITERAL);
 }
 
-/**
- * Scans real literals
- *
- * real_literal ::=
- *      decimal_digit+ '.' decimal_digit+ exponent_part? real_type_suffix?
- *      .decimal_digit+ exponent_part? real_type_suffix?
- *      decimal_digit+ exponent_part real_type_suffix?
- *      decimal_digit+ real_type_suffix
- *
- * exponent_part ::= ('e' | 'E') sign? decimal_digit+
- *
- * sign ::= '-' | '+'
- *
- * real_type_suffix ::= F | f | D | d | M | m
- */
-CSMetrics::Token CSMetrics::Lexer::scan_real_literal(CSMetrics::location position) {
+CSMetrics::Token CSMetrics::Lexer::scan_real_literal() {
+    int lookahead = get_after()[0];
+    if (!std::isdigit(lookahead) && lookahead != '.') {
+        // Not a real
+        scanning_error("Scanning not a real");
+    }
+
+    location start_loc = _loc;
     std::ostringstream literal;
 
-    // Scan decimal
+    // Scan decimal part
     extract_number(literal);
 
     // Try to extract '.'
-    char ch = get_char();
-    if (ch == '.') {
-        literal << ch;
+    if (get_after()[0] == '.') {
+        literal << get_char();
 
         // Scan decimal
         extract_number(literal);
 
-        ch = get_char();
-
         // Scan possible exponent part
-        if (ch == 'e' || ch == 'E') {
-            literal << ch;
+        if (std::tolower(get_after()[0]) == 'e') {
+            literal << get_char();
+
             // Scan possible sign
-            ch = get_char();
-            if (ch == '-' || ch == '+')
-                literal << ch;
-            else
-                unget_char();
+            lookahead = get_after()[0];
+            if (lookahead == '-' || lookahead == '+')
+                literal << get_char();
+
             // Scan decimal
             extract_number(literal);
-            ch = get_char();
         }
     }
 
     // Scan possible real type suffix
-    if (ch == 'F' || ch == 'f' || ch == 'D' || ch == 'd' || ch == 'M' || ch == 'm')
-        literal << ch;
-    else
-        unget_char();
+    lookahead = std::tolower(get_after()[0]);
+    if (lookahead == 'f' || lookahead == 'd' || lookahead == 'm') {
+        literal << get_char();
+    }
 
-    return Token(span(position, _loc), literal.str(), Token::REAL_LITERAL);
+    return Token(span(start_loc, _loc), literal.str(), Token::REAL_LITERAL);
 }
 
+CSMetrics::Token CSMetrics::Lexer::scan_character_literal() {
+    std::string lookahead = get_after(3);
+    if (lookahead.size() > 3 || lookahead[0] != '\'' || lookahead[2] != '\'') {
+        // Not a character
+        scanning_error("Scanning not a character");
+    }
 
+    location start_loc = _loc;
+    std::ostringstream literal;
+    literal << get_char(); // Opening quote
+    literal << get_char(); // Character
+    literal << get_char(); // Closing quote
+
+    return Token(span(start_loc, _loc), literal.str(), Token::CHARACTER_LITERAL);
+}

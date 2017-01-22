@@ -6,7 +6,7 @@
 
 
 CSMetrics::Token::Token(const CSMetrics::span &_span, const std::string &_attribute, CSMetrics::Token::Type _type)
-    : _span(_span), _attribute(_attribute), _type(_type) {}
+        : _span(_span), _attribute(_attribute), _type(_type) {}
 
 const CSMetrics::span &CSMetrics::Token::get_span() const {
     return _span;
