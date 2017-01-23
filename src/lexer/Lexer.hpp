@@ -32,23 +32,45 @@ namespace CSMetrics {
         void TestFunc() {
             skip_whitespaces();
             Token tok = scan_comment();
-            std::cout << tok.get_attribute() << std::endl;
+            span tokspan = tok.get_span();
+            std::cout << tok.get_attribute();
+            std::cout << ", begin:" << tokspan.begin.lineno << ":" << tokspan.begin.charno;
+            std::cout << ", end:" << tokspan.end.lineno << ":" << tokspan.end.charno << std::endl;
 
             skip_whitespaces();
             Token tok2 = scan_comment();
-            std::cout << tok2.get_attribute() << std::endl;
+            span tok2span = tok2.get_span();
+            std::cout << tok2.get_attribute();
+            std::cout << ", begin:" << tok2span.begin.lineno << ":" << tok2span.begin.charno;
+            std::cout << ", end:" << tok2span.end.lineno << ":" << tok2span.end.charno << std::endl;
 
             skip_whitespaces();
             Token tok3 = scan_integer_literal();
-            std::cout << tok3.get_attribute() << std::endl;
+            span tok3span = tok3.get_span();
+            std::cout << tok3.get_attribute();
+            std::cout << ", begin:" << tok3span.begin.lineno << ":" << tok3span.begin.charno;
+            std::cout << ", end:" << tok3span.end.lineno << ":" << tok3span.end.charno << std::endl;
 
             skip_whitespaces();
             Token tok4 = scan_real_literal();
-            std::cout << tok4.get_attribute() << std::endl;
+            span tok4span = tok4.get_span();
+            std::cout << tok4.get_attribute();
+            std::cout << ", begin:" << tok4span.begin.lineno << ":" << tok4span.begin.charno;
+            std::cout << ", end:" << tok4span.end.lineno << ":" << tok4span.end.charno << std::endl;
 
             skip_whitespaces();
             Token tok5 = scan_character_literal();
-            std::cout << tok5.get_attribute() << std::endl;
+            span tok5span = tok5.get_span();
+            std::cout << tok5.get_attribute();
+            std::cout << ", begin:" << tok5span.begin.lineno << ":" << tok5span.begin.charno;
+            std::cout << ", end:" << tok5span.end.lineno << ":" << tok5span.end.charno << std::endl;
+
+            skip_whitespaces();
+            Token tok6 = scan_string_literal();
+            span tok6span = tok6.get_span();
+            std::cout << tok6.get_attribute();
+            std::cout << ", begin:" << tok6span.begin.lineno << ":" << tok6span.begin.charno;
+            std::cout << ", end:" << tok6span.end.lineno << ":" << tok6span.end.charno << std::endl;
 
             skip_whitespaces();
         }
@@ -148,7 +170,7 @@ namespace CSMetrics {
         Token scan_integer_literal();
 
         /**
-         * Scans real literals
+         * Scans real literals. Warning: the correctness of scanning these literals is not guaranteed yet.
          *
          * real_literal ::=
          *      decimal_digit+ '.' decimal_digit+ exponent_part? real_type_suffix?
@@ -165,13 +187,44 @@ namespace CSMetrics {
         Token scan_real_literal();
 
         /**
-         * Scans character literal
+         * Scans character literal. Warning: the full specification of character scanning isn't implemented yet.
          *
          * character_literal ::= ' character '
+         * character ::=
+         *      single_character
+         *      simple_escape_sequence
+         *      hexadecimal_escape_sequence
+         *      unicode_escape_sequence
+         *
+         * single_character ::=
+         *      any character except:   apostrophe (U+0027)
+         *                              backslash (U+005C)
+         *                              new_line_character: (U+000D), (U+000A), (U+0085)
+         *
+         * simple_escape_sequence ::= \'  \"  \\  \0  \a  \b  \f  \n  \r  \t  \v
+         *
+         * hexadecimal_escape_sequence ::= \x hex_digit hex_digit? hex_digit? hex_digit?
+         *
+         * unicode_escape_sequence ::=
+         *      \u hex_digit hex_digit hex_digit hex_digit
+         *      \U hex_digit hex_digit hex_digit hex_digit hex_digit hex_digit hex_digit hex_digit
          *
          * @return Character literal token
          */
         Token scan_character_literal();
+
+        /**
+         * Scans string literal
+         *
+         * string_literal ::=
+         *      regular_string_literal ::= " regular_string_character* "
+         *      verbatim_string_literal ::= @" verbatim_string_literal_character* "
+         *              verbatim_string_literal_character :: = any character except " or quote escape sequence ""
+         *
+         * @return String literal token
+         */
+        Token scan_string_literal();
+
 
     };
 

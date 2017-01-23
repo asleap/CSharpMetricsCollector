@@ -20,9 +20,16 @@ int main(int argc, char *argv[]) {
 
     source_stream.seekg(0, std::ios_base::beg);
 
-    CSMetrics::Lexer lex(source_stream, lines);
+    CSMetrics::Lexer lex(source_stream, lines + 10);
 
     lex.TestFunc();
 
     return 0;
 }
+
+//int main(int argc, char *argv[]) {
+//    char ch = '\\';
+//    std::cout << "Code: " << std::hex << static_cast<int>(ch) << ",\tsymbol: " << ch << std::endl;
+//
+//    return 0;
+//}

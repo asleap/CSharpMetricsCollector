@@ -19,9 +19,14 @@ void CSMetrics::Lexer::scanning_error(std::string message) {
 }
 
 char CSMetrics::Lexer::get_char() {
-    if (_input.good()) {
-        _input.get(_ch);
-    } else {
+//    if (_input.good()) {
+//        _input.get(_ch);
+//    } else {
+//        _ch = '\0';
+//    }
+
+    _input.get(_ch);
+    if(!_input.good()) {
         _ch = '\0';
     }
 
@@ -62,6 +67,10 @@ void CSMetrics::Lexer::unget_char() {
         return;
     }
 
+    if (_ch == '\0') {
+        return;
+    }
+
     if (_loc.charno > 1) {
         _loc.charno--;
     } else if (_loc.charno == 1 && _loc.lineno > 1) {
@@ -79,7 +88,6 @@ void CSMetrics::Lexer::skip_whitespaces() {
 
         switch (current()) {
             case '\0':
-                unget_char();
                 std::cerr << "Met eos/eof, _loc:" << _loc.lineno << ":" << _loc.charno << std::endl;
                 return;
 
@@ -108,11 +116,10 @@ CSMetrics::Token CSMetrics::Lexer::scan_comment() {
         // Handle one line comment
         while (true) {
             get_char();
-
-            if (current() == '\n' || !_input.good())
-                break;
-
             comment << current();
+            if (get_after()[0] == '\n' || !_input.good()) {
+                break;
+            }
         }
     } else if (current() == '*') {
         // Handle multi line comment
@@ -120,8 +127,11 @@ CSMetrics::Token CSMetrics::Lexer::scan_comment() {
             get_char();
             comment << current();
 
-            if (current() == '*' && get_after()[0] == '/')
+            if (current() == '*' && get_after()[0] == '/') {
+                comment << current();
+                comment << get_char();
                 break;
+            }
         }
     } else {
         // Not a comment
@@ -235,8 +245,7 @@ CSMetrics::Token CSMetrics::Lexer::scan_real_literal() {
 }
 
 CSMetrics::Token CSMetrics::Lexer::scan_character_literal() {
-    std::string lookahead = get_after(3);
-    if (lookahead.size() > 3 || lookahead[0] != '\'' || lookahead[2] != '\'') {
+    if (get_after()[0] != '\'') {
         // Not a character
         scanning_error("Scanning not a character");
     }
@@ -244,8 +253,75 @@ CSMetrics::Token CSMetrics::Lexer::scan_character_literal() {
     location start_loc = _loc;
     std::ostringstream literal;
     literal << get_char(); // Opening quote
-    literal << get_char(); // Character
-    literal << get_char(); // Closing quote
+
+    // Scanning character
+    bool scanning = true;
+    while(scanning) {
+        get_char();
+
+        switch (current()) {
+            case '\\':
+                if (get_after()[0] != '\'') {
+                    literal << current();
+                    break;
+                } else {
+                    scanning = false;
+                    unget_char();
+                    scanning_error("Scanning not a character");
+                    break;
+                }
+
+            case '\r':
+            case '\n':
+                scanning = false;
+                unget_char();
+                scanning_error("Scanning not a character");
+                break;
+
+            case '\'':
+                scanning = false;
+                literal << current(); // Finishing quote
+                break;
+
+            default:
+                literal << current();
+                break;
+        }
+    }
 
     return Token(span(start_loc, _loc), literal.str(), Token::CHARACTER_LITERAL);
+}
+
+CSMetrics::Token CSMetrics::Lexer::scan_string_literal() {
+    int lookahead = get_after()[0];
+    if (lookahead != '"' && lookahead != '@') {
+        scanning_error("Scanning not a string");
+    }
+
+    location start_loc = _loc;
+    std::ostringstream literal;
+    bool scanning = true;
+    bool escaped = false;
+
+    get_char();
+    if (current() == '"') {
+        literal << current();
+    } else {
+        literal << current();
+        literal << get_char();
+    }
+
+    while (scanning) {
+        get_char();
+
+        if (current() == '"' && !escaped) {
+            scanning = false;
+        }
+
+        escaped = current() == '\\';
+
+        literal << current();
+    }
+
+    return Token(span(start_loc, _loc), literal.str(), Token::STRING_LITERAL);
 }

@@ -129,7 +129,8 @@ namespace CSMetrics {
             // Literals
                     INTEGER_LITERAL,
             REAL_LITERAL,
-            CHARACTER_LITERAL
+            CHARACTER_LITERAL,
+            STRING_LITERAL
         };
 
         Token(const span &_span, const std::string &_attribute, Type _type);
