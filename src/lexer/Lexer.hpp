@@ -14,12 +14,12 @@
 
 namespace CSMetrics {
 
-/**
- * Simple lexer implementation.
- * Written in correspondance to language standard.
- * However, supports only ASCII characters since
- * weak C++ Unicode support.
- */
+    /**
+     * Simple lexer implementation.
+     * Written in correspondance to language standard.
+     * However, supports only ASCII characters since
+     * weak C++ Unicode support.
+     */
     class Lexer {
     public:
 
@@ -225,7 +225,23 @@ namespace CSMetrics {
          */
         Token scan_string_literal();
 
-
+        /**
+         * Scans identifiers
+         *
+         * identifier ::=
+         *      available_identifier ::= an identifier_or_keyword that is not keyword
+         *      @ identifier_or_keyword ::= identifier_start_character (_ or letter) identifier_part_character* ()
+         *
+         * identifier_part_character ::=
+         *      letter_character
+         *      decimal_digit_character
+         *      connecting_character
+         *      combining_character
+         *      formatting_character
+         *
+         * @return Identifier token
+         */
+        Token scan_identifier();
     };
 
 }

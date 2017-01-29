@@ -2,9 +2,9 @@ cmake_minimum_required(VERSION 3.6)
 
 include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 include_directories(${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/src/generated)
-include_directories(${PROJECT_SOURCE_DIR}/src/lexer)
+include_directories(${PROJECT_SOURCE_DIR}/src/flex)
 
-set(SOURCE_FILES MetricsDriverTests.cpp LexerTests.cpp)
+set(SOURCE_FILES ParserTests.cpp)
 
 add_executable(RunTests ${SOURCE_FILES})
 

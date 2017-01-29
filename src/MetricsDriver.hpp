@@ -2,8 +2,8 @@
 // Created by Timofey Lysenko on 05.10.16.
 //
 
-#ifndef CSHARPMETRICS_METRICSDRIVER_H
-#define CSHARPMETRICS_METRICSDRIVER_H 1
+#ifndef CSHARPMETRICS_METRICSDRIVER_HPP
+#define CSHARPMETRICS_METRICSDRIVER_HPP 1
 
 #include <string>
 #include <cstddef>

@@ -9,7 +9,7 @@
 #include "Lexer.hpp"
 
 int main(int argc, char *argv[]) {
-    std::ifstream source_file("Test.cs.txt");
+    std::ifstream source_file("C:\\Projects\\c++\\CSharpMetrics\\tests\\Test.cs.txt");
 
     std::string from_source((std::istreambuf_iterator<char>(source_file >> std::noskipws)),
                             std::istreambuf_iterator<char>());

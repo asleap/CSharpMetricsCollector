@@ -325,3 +325,7 @@ CSMetrics::Token CSMetrics::Lexer::scan_string_literal() {
 
     return Token(span(start_loc, _loc), literal.str(), Token::STRING_LITERAL);
 }
+
+CSMetrics::Token CSMetrics::Lexer::scan_identifier() {
+
+}

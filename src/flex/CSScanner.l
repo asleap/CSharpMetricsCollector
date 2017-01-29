@@ -2,7 +2,7 @@
 /* C++ string header, for string ops below */
 #include <string>
 
-/* Implementation of yyFlexScanner */ 
+/* Implementation of yyFlexScanner */
 #include "../flex/CSScanner.hpp"
 #undef  YY_DECL
 #define YY_DECL int Metrics::CSScanner::yylex( Metrics::CSParser::semantic_type * const lval, Metrics::CSParser::location_type *loc )
@@ -26,22 +26,27 @@ using token = Metrics::CSParser::token;
 %option noyywrap
 %option c++
 
+
 %%
 %{          /** Code executed at the beginning of yylex **/
             yylval = lval;
 %}
 
-[a-z]       {
-               return( token::LOWER );
-            }
+  /*
+  [a-z]       {
+                 return( token::LOWER );
+              }
+  */
 
-[A-Z]       {
-               return( token::UPPER );
-            }
+  /*
+  [A-Z]       {
+                 return( token::UPPER );
+              }
+  */
 
 [a-zA-Z]+   {
                /**
-                * Section 10.1.5.1 of the 3.0.2 Bison Manual says the 
+                * Section 10.1.5.1 of the 3.0.2 Bison Manual says the
                 * following should work:
                 * yylval.build( yytext );
                 * but it doesn't.
@@ -57,9 +62,10 @@ using token = Metrics::CSParser::token;
                return( token::NEWLINE );
             }
 
+
 .           {
                return( token::CHAR );
             }
+
+
 %%
-
-

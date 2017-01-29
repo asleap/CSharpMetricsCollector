@@ -9,29 +9,34 @@ add_custom_target(CreateFlexBisonGeneratedDirectory ALL
 
 # Bison settings
 find_package(BISON 3.0)
-#BISON_TARGET(CSParser bison/CSParser.yy
-#        ${CMAKE_CURRENT_BINARY_DIR}/generated/CSParser.cc
-#        DEFINES_FILE ${CMAKE_CURRENT_BINARY_DIR}/generated/CSParser.hh)
-BISON_TARGET(CSParser bison/CSParser.yy
-        ${CMAKE_CURRENT_SOURCE_DIR}/generated/CSParser.cc
-        DEFINES_FILE ${CMAKE_CURRENT_SOURCE_DIR}/generated/CSParser.hh)
+if(BISON_FOUND)
+    BISON_TARGET(CSParser bison/CSParser.ypp
+            ${CMAKE_CURRENT_SOURCE_DIR}/generated/CSParser.cc
+            DEFINES_FILE ${CMAKE_CURRENT_SOURCE_DIR}/generated/CSParser.hh
+            VERBOSE ${CMAKE_CURRENT_SOURCE_DIR}/generated)
+    if(BISON_CSParser_DEFINED)
+        message(STATUS "Bison compile flags: " ${BISON_CSParser_COMPILE_FLAGS})
+    endif()
+endif()
+
 
 # Flex settings
 find_package(FLEX 2.5.37)
-#FLEX_TARGET(CSScanner flex/CSScanner.l
-#        ${CMAKE_CURRENT_BINARY_DIR}/generated/CSScanner.cc)
-FLEX_TARGET(CSScanner flex/CSScanner.l
-        ${CMAKE_CURRENT_SOURCE_DIR}/generated/CSScanner.cc)
+if(FLEX_FOUND)
+    FLEX_TARGET(CSScanner flex/CSScanner.l
+            ${CMAKE_CURRENT_SOURCE_DIR}/generated/CSScanner.cc)
+    if(FLEX_CSScanner_DEFINED)
+        message(STATUS "Flex compile flags: " ${FLEX_CSScanner_COMPILE_FLAGS})
+    endif()
+endif()
 
 # Add bison generated header dependency into flex scanner
-#include_directories(${CMAKE_CURRENT_BINARY_DIR}/generated)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/generated)
 ADD_FLEX_BISON_DEPENDENCY(CSScanner CSParser)
 
 # Collect source files
 set(SOURCE_FILES main.cpp)
 set(SOURCE_FILES ${SOURCE_FILES} flex/CSScanner.hpp)
-set(SOURCE_FILES ${SOURCE_FILES} lexer/Lexer.hpp lexer/Lexer.cpp)
 set(SOURCE_FILES ${SOURCE_FILES} MetricsDriver.cpp MetricsDriver.hpp)
 
 add_library(CSharpMetricsLib
@@ -50,5 +55,3 @@ if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tmp)
     add_dependencies(CSharpMetricsLib CreateFlexBisonGeneratedDirectory)
 endif()
 
-# Let it be here for a while
-add_subdirectory(lexer)
