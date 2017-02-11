@@ -8,6 +8,7 @@
 #include <CSParser.hh>
 #include <c++/memory>
 #include <c++/fstream>
+#include <MetricsDriver.hpp>
 
 class ParserTests : public ::testing::Test {
 public:
@@ -19,22 +20,21 @@ protected:
     }
 
     virtual void TearDown() {
-        delete scanner;
-        delete parser;
         delete driver;
     }
 
-    Metrics::CSScanner *scanner = nullptr;
-    Metrics::CSParser *parser = nullptr;
-    Metrics::CSMetricsDriver *driver = nullptr;
+    Metrics::MetricsDriver *driver = nullptr;
 };
 
-TEST_F(ParserTests, ParseSingleLineComment) {
-    std::string from_source = "HelloWorld";
+TEST_F(ParserTests, ParseWord) {
+    std::string from_source = "Hello World";
     std::istringstream source_stream(from_source);
-    scanner = new Metrics::CSScanner(&source_stream);
-    driver = new Metrics::CSMetricsDriver();
-    parser = new Metrics::CSParser((*scanner), (*driver));
 
+    driver = new Metrics::MetricsDriver();
+    driver->parse(source_stream);
 
+    EXPECT_EQ(driver->getTokens().size(), static_cast<size_t >(3));
+    EXPECT_EQ(driver->getTokens()[0], Metrics::CSParser::token::WORD);
+    EXPECT_EQ(driver->getTokens()[1], Metrics::CSParser::token::CHAR);
+    EXPECT_EQ(driver->getTokens()[2], Metrics::CSParser::token::WORD);
 }

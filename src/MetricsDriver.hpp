@@ -11,13 +11,15 @@
 #include <ostream>
 
 #include "flex/CSScanner.hpp"
-#include <CSParser.hh>
+#include "generated/CSParser.hh"
+//#include <CSParser.hh>
 
 namespace Metrics {
 
 class MetricsDriver {
 public:
     MetricsDriver() = default;
+
     virtual ~MetricsDriver();
 
     /**
@@ -32,26 +34,26 @@ public:
      */
     void parse(std::istream &stream);
 
-    void add_upper();
-    void add_lower();
     void add_word(const std::string &word);
+
     void add_newline();
+
     void add_char();
 
     size_t getChars() const {
         return chars;
     }
+
     size_t getWords() const {
         return words;
     }
+
     size_t getLines() const {
         return lines;
     }
-    size_t getUppercase() const {
-        return uppercase;
-    }
-    size_t getLowercase() const {
-        return lowercase;
+
+    std::vector<Metrics::CSParser::token::yytokentype> &getTokens() {
+        return tokens;
     }
 
 private:
@@ -60,8 +62,8 @@ private:
     std::size_t chars = 0;
     std::size_t words = 0;
     std::size_t lines = 0;
-    std::size_t uppercase = 0;
-    std::size_t lowercase = 0;
+
+    std::vector<Metrics::CSParser::token::yytokentype> tokens;
 
     Metrics::CSParser *parser = nullptr;
     Metrics::CSScanner *scanner = nullptr;

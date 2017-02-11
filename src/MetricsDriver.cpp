@@ -32,37 +32,28 @@ void Metrics::MetricsDriver::parse(std::istream &stream) {
     parse_helper(stream);
 }
 
-void Metrics::MetricsDriver::add_upper() {
-    uppercase++;
-    chars++;
-    words++;
-}
-
-void Metrics::MetricsDriver::add_lower() {
-    lowercase++;
-    chars++;
-    words++;
-}
-
-void Metrics::MetricsDriver::add_word(const std::string &word) {
-    words++;
-    chars += word.length();
-    for (const char &c : word) {
-        if (islower(c)) {
-            lowercase++;
-        } else if (isupper(c)) {
-            uppercase++;
-        }
-    }
-}
+//void Metrics::MetricsDriver::add_word(const std::string &word) {
+//    words++;
+//    chars += word.length();
+//    tokens.push_back(Metrics::CSParser::token::WORD);
+////    for (const char &c : word) {
+////        if (islower(c)) {
+////            lowercase++;
+////        } else if (isupper(c)) {
+////            uppercase++;
+////        }
+////    }
+//}
 
 void Metrics::MetricsDriver::add_newline() {
     lines++;
     chars++;
+    tokens.push_back(Metrics::CSParser::token::NEW_LINE);
 }
 
 void Metrics::MetricsDriver::add_char() {
     chars++;
+    tokens.push_back(Metrics::CSParser::token::CHAR);
 }
 
 void Metrics::MetricsDriver::parse_helper(std::istream &stream) {
@@ -92,8 +83,6 @@ void Metrics::MetricsDriver::parse_helper(std::istream &stream) {
 
 std::ostream &Metrics::operator<<(std::ostream &os, const Metrics::MetricsDriver &driver) {
     os << "Results:\n";
-    os << "Uppercase: " << driver.getUppercase() << "\n";
-    os << "Lowercase: " << driver.getLowercase() << "\n";
     os << "Lines: " << driver.getLines() << "\n";
     os << "Words: " << driver.getWords() << "\n";
     os << "Characters: " << driver.getChars() << "\n";

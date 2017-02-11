@@ -1,3 +1,10 @@
+/**
+ * A C# grammar for Bison written in correspondance to C# 6 language
+ * specification found here: https://github.com/ljw1004/csharpspec
+ */
+
+
+
 /* PROLOGUE */
 //%{
 //%}
@@ -47,44 +54,362 @@
     #define yylex scanner.yylex
 }
 
-%token               END    0     "end of file"
-//%token               UPPER
-//%token               LOWER
-%token <std::string> WORD
-%token               NEWLINE
-%token               CHAR
+
+/* TOKENS */
+//%token                END    0     "end of file"
+%token                  END
+
+/* WHITESPACE token:
+ * <Any character with Unicode class Zs>
+ * <Horizontal tab character (U+0009)>
+ * <Vertical tab character (U+000B)>
+ * <Form feed character (U+000C)>
+ */
+//%token                WHITESPACE
+
+/* NEW_LINE token:
+ * <Carriage return character (U+000D)>
+ * <Line feed character (U+000A)>
+ * <Carriage return character (U+000D) followed by line feed character (U+000A)>
+ * <Next line character (U+0085)>
+ * <Line separator character (U+2028)>
+ * <Paragraph separator character (U+2029)>
+ */
+%token                  NEW_LINE
+
+%token                  HASH                  /* # sign */
+%token                  DEFINE                /* define pp-keyword */
+%token                  UNDEF                 /* undef pp-keyword */
+
+/* Keywords */
+%token                  ABSTRACT
+%token                  AS
+%token                  BASE
+%token                  BOOL
+%token                  BREAK
+%token                  BYTE
+%token                  CASE
+%token                  CATCH
+%token                  CHAR
+%token                  CHECKED
+%token                  CLASS
+%token                  CONST
+%token                  CONTINUE
+%token                  DECIMAL
+%token                  DEFAULT
+%token                  DELEGATE
+%token                  DO
+%token                  DOUBLE
+%token                  ELSE
+%token                  ENUM
+%token                  EVENT
+%token                  EXPLICIT
+%token                  EXTERN
+%token                  FALSE
+%token                  FINALLY
+%token                  FIXED
+%token                  FLOAT
+%token                  FOR
+%token                  FOREACH
+%token                  GOTO
+%token                  IF
+%token                  IMPLICIT
+%token                  IN
+%token                  INT
+%token                  INTERFACE
+%token                  INTERNAL
+%token                  IS
+%token                  LOCK
+%token                  LONG
+%token                  NAMESPACE
+%token                  NEW
+%token                  Null
+%token                  OBJECT
+%token                  OPERATOR
+%token                  OUT
+%token                  OVERRIDE
+%token                  PARAMS
+%token                  PRIVATE
+%token                  PROTECTED
+%token                  PUBLIC
+%token                  READONLY
+%token                  REF
+%token                  RETURN
+%token                  SBYTE
+%token                  SEALED
+%token                  SHORT
+%token                  SIZEOF
+%token                  STACKALLOC
+%token                  STATIC
+%token                  STRING
+%token                  STRUCT
+%token                  SWITCH
+%token                  THIS
+%token                  THROW
+%token                  TRUE
+%token                  TRY
+%token                  TYPEOF
+%token                  UINT
+%token                  ULONG
+%token                  UNCHECKED
+%token                  UNSAFE
+%token                  USHORT
+%token                  USING
+%token                  VIRTUAL
+%token                  VOID
+%token                  VOLATILE
+%token                  WHILE
+%token                  YIELD
+
+/* Operators and punctuators */
+%token                  LBRACE            /* { */
+%token                  RBRACE            /* } */
+%token                  LBRACKET          /* [ */
+%token                  RBRACKET          /* ] */
+%token                  LPAREN            /* ( */
+%token                  RPAREN            /* ) */
+
+%token                  DOT               /* . */
+%token                  COMMA             /* , */
+%token                  COLON             /* : */
+%token                  SEMICOLON         /* ; */
+
+%token                  PLUS              /* + */
+%token                  MINUS             /* - */
+%token                  STAR              /* * */
+%token                  SLASH             /* / */
+%token                  PERCENT           /* % */
+%token                  AMPERSAND         /* & */
+%token                  VERTICAL          /* | */
+%token                  CARET             /* ^ */
+%token                  EXCLAMATION       /* ! */
+%token                  TILDE             /* ~ */
+%token                  EQUAL             /* = */
+%token                  LESS              /* < */
+%token                  GREATER           /* > */
+%token                  QUESTION          /* ? */
+
+%token                  DBL_QUESTION      /* ?? */
+%token                  DBL_COLON         /* :: */
+%token                  DBL_PLUS          /* ++ */
+%token                  DBL_MINUS         /* -- */
+%token                  DBL_AMPERSAND     /* && */
+%token                  DBL_VERTICAL      /* || */
+%token                  DBL_EQUAL         /* == */
+
+%token                  EXCL_EQUAL        /* != */
+%token                  LESS_EQUAL        /* <= */
+%token                  GREATER_EQUAL     /* >= */
+%token                  PLUS_EQUAL        /* += */
+%token                  MINUS_EQUAL       /* -= */
+%token                  STAR_EQUAL        /* *= */
+%token                  SLASH_EQUAL       /* /= */
+%token                  PERCENT_EQUAL     /* %= */
+%token                  AMPERSAND_EQUAL   /* &= */
+%token                  VERTICAL_EQUAL    /* |= */
+%token                  CARET_EQUAL       /* ^= */
+%token                  DBL_LESS          /* << */
+%token                  DBL_LESS_EQUAL    /* <<= */
+%token                  DBL_GREATER       /* >> */
+%token                  DBL_GREATER_EQUAL /* >>= */
+%token                  EQUAL_GREATER     /* => */
+%token                  MINUS_GREATER     /* -> */
+
+/* Literals */
+%token <std::string>    SINGLE_LINE_COMMENT
+%token <std::string>    MULTI_LINE_COMMENT
+%token <std::string>    IDENTIFIER
+%token <std::string>    INTEGER_LITERAL
+%token <std::string>    REAL_LITERAL
+%token <std::string>    CHARACTER_LITERAL
+%token <std::string>    STRING_LITERAL
 
 %locations
 
+/* GRAMMAR */
 %%
 
-list_option : END | list END;
 
-list
-  : item
-  | list item
-  ;
+/**
+ * The following tree describes all possible inputs
+ */
+input
+    : END
+    | input_section END
+    ;
 
-//item
-//  : UPPER   { driver.add_upper(); }
-//  | LOWER   { driver.add_lower(); }
-//  | WORD    { driver.add_word( $1 ); }
-//  | NEWLINE { driver.add_newline(); }
-//  | CHAR    { driver.add_char(); }
-//  ;
+input_section
+    : input_section_part
+    | input_section input_section_part
+    ;
 
-item
-  : WORD    { driver.add_word( $1 ); }
-  | NEWLINE { driver.add_newline(); }
-  | CHAR    { driver.add_char(); }
-  ;
+input_section_part
+    : input_element_list NEW_LINE
+    // | pp_directive
+    ;
+
+input_element_list          /* input_element_list - not in specification */
+    : %empty
+    | input_element
+    | input_element_list input_element
+    ;
+
+input_element
+    : /* WHITESPACE |*/ comment
+    | token
+    ;
+
+comment
+    : SINGLE_LINE_COMMENT
+    | MULTI_LINE_COMMENT
+    ;
+
+token
+    : IDENTIFIER
+    | keyword
+    | INTEGER_LITERAL
+    | REAL_LITERAL
+    | CHARACTER_LITERAL
+    | STRING_LITERAL
+    // | interpolated_string_literal
+    | operator_or_punctuator
+    ;
+
+keyword
+    : ABSTRACT
+    | AS
+    | BASE
+    | BOOL
+    | BREAK
+    | BYTE
+    | CASE
+    | CATCH
+    | CHAR
+    | CHECKED
+    | CLASS
+    | CONST
+    | CONTINUE
+    | DECIMAL
+    | DEFAULT
+    | DELEGATE
+    | DO
+    | DOUBLE
+    | ELSE
+    | ENUM
+    | EVENT
+    | EXPLICIT
+    | EXTERN
+    | FALSE
+    | FINALLY
+    | FIXED
+    | FLOAT
+    | FOR
+    | FOREACH
+    | GOTO
+    | IF
+    | IMPLICIT
+    | IN
+    | INT
+    | INTERFACE
+    | INTERNAL
+    | IS
+    | LOCK
+    | LONG
+    | NAMESPACE
+    | NEW
+    | Null
+    | OBJECT
+    | OPERATOR
+    | OUT
+    | OVERRIDE
+    | PARAMS
+    | PRIVATE
+    | PROTECTED
+    | PUBLIC
+    | READONLY
+    | REF
+    | RETURN
+    | SBYTE
+    | SEALED
+    | SHORT
+    | SIZEOF
+    | STACKALLOC
+    | STATIC
+    | STRING
+    | STRUCT
+    | SWITCH
+    | THIS
+    | THROW
+    | TRUE
+    | TRY
+    | TYPEOF
+    | UINT
+    | ULONG
+    | UNCHECKED
+    | UNSAFE
+    | USHORT
+    | USING
+    | VIRTUAL
+    | VOID
+    | VOLATILE
+    | WHILE
+    | YIELD
+    ;
+
+operator_or_punctuator
+    : LBRACE
+    | RBRACE
+    | LBRACKET
+    | RBRACKET
+    | LPAREN
+    | RPAREN
+    | DOT
+    | COMMA
+    | COLON
+    | SEMICOLON
+    | PLUS
+    | MINUS
+    | STAR
+    | SLASH
+    | PERCENT
+    | AMPERSAND
+    | VERTICAL
+    | CARET
+    | EXCLAMATION
+    | TILDE
+    | EQUAL
+    | LESS
+    | GREATER
+    | QUESTION
+    | DBL_QUESTION
+    | DBL_COLON
+    | DBL_PLUS
+    | DBL_MINUS
+    | DBL_AMPERSAND
+    | DBL_VERTICAL
+    | DBL_EQUAL
+    | EXCL_EQUAL
+    | LESS_EQUAL
+    | GREATER_EQUAL
+    | PLUS_EQUAL
+    | MINUS_EQUAL
+    | STAR_EQUAL
+    | SLASH_EQUAL
+    | PERCENT_EQUAL
+    | AMPERSAND_EQUAL
+    | VERTICAL_EQUAL
+    | CARET_EQUAL
+    | DBL_LESS
+    | DBL_LESS_EQUAL
+    | EQUAL_GREATER
+    | MINUS_GREATER
+    ;
 
 
 %%
 
 /* EPILOGUE */
-
 void Metrics::CSParser::error( const location_type &l, const std::string &err_message )
 {
-   std::cerr << "Error: " << err_message << " at " << l << "\n";
+    std::cerr << "Error: " << err_message << " at " << l << "\n";
 }
