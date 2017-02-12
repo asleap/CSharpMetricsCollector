@@ -1,12 +1,20 @@
+public static Vector2 getIntersectionPoint(Crossroad a, Crossroad b, Crossroad c, Crossroad d)
+{
+    float x12 = a.x - b.x;
+    float x34 = c.x - d.x;
+    float y12 = a.y - b.y;
+    float y34 = c.y - d.y;
 
+    float f = x12 * y34 - y12 * x34;
+    if (Math.Abs(f) < 0.01)
+    {
+        return Vector2.zero;
+    }
+    else
+    {
+        float tmp0 = a.x * b.y - a.y * b.x;
+        float tmp1 = c.x * d.y - c.y * d.x;
 
-/* Hello world */
-// This is comment
-
-0x14Lu
-
-1.32e-1f
-
-'\t'
-
-@"Hello world \n\""
+        return new Vector2((tmp0 * x34 - tmp1 * x12) / f, (tmp0 * y34 - tmp1 * y12) / f);
+    }
+}

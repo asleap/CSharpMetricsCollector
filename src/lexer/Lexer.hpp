@@ -78,7 +78,7 @@ namespace CSMetrics {
     private:
         std::istream &_input;               // Input stream of the source code
         char _ch;                           // Last read character (use current() to get)
-        location _loc;                      // Current location in source
+        location _loc;                      // Current _location in source
         std::vector<int> _chars_in_line;    // Stores number of chars in a given line
 
         /**

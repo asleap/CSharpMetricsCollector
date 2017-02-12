@@ -34,7 +34,4 @@ TEST_F(ParserTests, ParseWord) {
     driver->parse(source_stream);
 
     EXPECT_EQ(driver->getTokens().size(), static_cast<size_t >(3));
-    EXPECT_EQ(driver->getTokens()[0], Metrics::CSParser::token::WORD);
-    EXPECT_EQ(driver->getTokens()[1], Metrics::CSParser::token::CHAR);
-    EXPECT_EQ(driver->getTokens()[2], Metrics::CSParser::token::WORD);
 }

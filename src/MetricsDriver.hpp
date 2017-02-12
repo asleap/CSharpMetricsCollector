@@ -11,6 +11,7 @@
 #include <ostream>
 
 #include "flex/CSScanner.hpp"
+#include "Token.hpp"
 #include "generated/CSParser.hh"
 //#include <CSParser.hh>
 
@@ -34,43 +35,19 @@ public:
      */
     void parse(std::istream &stream);
 
-    void add_word(const std::string &word);
+    void pushBackToken(const Metrics::Token &token);
 
-    void add_newline();
+    std::vector<Metrics::Token> &getTokens();
 
-    void add_char();
-
-    size_t getChars() const {
-        return chars;
-    }
-
-    size_t getWords() const {
-        return words;
-    }
-
-    size_t getLines() const {
-        return lines;
-    }
-
-    std::vector<Metrics::CSParser::token::yytokentype> &getTokens() {
-        return tokens;
-    }
+    friend std::ostream &operator<<(std::ostream &os, const MetricsDriver &driver);
 
 private:
-    void parse_helper(std::istream &stream);
-
-    std::size_t chars = 0;
-    std::size_t words = 0;
-    std::size_t lines = 0;
-
-    std::vector<Metrics::CSParser::token::yytokentype> tokens;
-
+    std::vector<Metrics::Token> tokens;
     Metrics::CSParser *parser = nullptr;
     Metrics::CSScanner *scanner = nullptr;
+
+    void parse_helper(std::istream &stream);
 };
-
-
-std::ostream &operator<<(std::ostream &os, const MetricsDriver &driver);
 
 } // end namespace Metrics
 

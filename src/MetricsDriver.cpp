@@ -21,7 +21,6 @@ void Metrics::MetricsDriver::parse(const char *const filename) {
     if (!in_file.good()) {
         exit(EXIT_FAILURE);
     }
-
     parse_helper(in_file);
 }
 
@@ -30,30 +29,6 @@ void Metrics::MetricsDriver::parse(std::istream &stream) {
         return;
     }
     parse_helper(stream);
-}
-
-//void Metrics::MetricsDriver::add_word(const std::string &word) {
-//    words++;
-//    chars += word.length();
-//    tokens.push_back(Metrics::CSParser::token::WORD);
-////    for (const char &c : word) {
-////        if (islower(c)) {
-////            lowercase++;
-////        } else if (isupper(c)) {
-////            uppercase++;
-////        }
-////    }
-//}
-
-void Metrics::MetricsDriver::add_newline() {
-    lines++;
-    chars++;
-    tokens.push_back(Metrics::CSParser::token::NEW_LINE);
-}
-
-void Metrics::MetricsDriver::add_char() {
-    chars++;
-    tokens.push_back(Metrics::CSParser::token::CHAR);
 }
 
 void Metrics::MetricsDriver::parse_helper(std::istream &stream) {
@@ -81,13 +56,28 @@ void Metrics::MetricsDriver::parse_helper(std::istream &stream) {
     }
 }
 
-std::ostream &Metrics::operator<<(std::ostream &os, const Metrics::MetricsDriver &driver) {
-    os << "Results:\n";
-    os << "Lines: " << driver.getLines() << "\n";
-    os << "Words: " << driver.getWords() << "\n";
-    os << "Characters: " << driver.getChars() << "\n";
-    return os;
+void Metrics::MetricsDriver::pushBackToken(const Metrics::Token &token) {
+    tokens.push_back(token);
 }
 
+std::vector<Metrics::Token> &Metrics::MetricsDriver::getTokens() {
+    return tokens;
+}
 
-
+std::ostream &Metrics::operator<<(std::ostream &os, const Metrics::MetricsDriver &driver) {
+    os << std::endl;
+    for (auto&& token : driver.tokens) {
+        os << token.getToken();
+        os << " ";
+        os << token.getLocation();
+        os << " ";
+        if (!token.getAttribute().empty()) {
+            os << token.getAttribute();
+            os << " ";
+        }
+        if (token.getToken() == Metrics::CSParser::token::NEW_LINE) {
+            os << std::endl;
+        }
+    }
+    return os;
+}

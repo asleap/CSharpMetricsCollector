@@ -37,6 +37,7 @@ ADD_FLEX_BISON_DEPENDENCY(CSScanner CSParser)
 # Collect source files
 set(SOURCE_FILES main.cpp)
 set(SOURCE_FILES ${SOURCE_FILES} flex/CSScanner.hpp)
+set(SOURCE_FILES ${SOURCE_FILES} Token.hpp Token.cpp)
 set(SOURCE_FILES ${SOURCE_FILES} MetricsDriver.cpp MetricsDriver.hpp)
 
 add_library(CSharpMetricsLib

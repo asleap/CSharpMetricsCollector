@@ -39,7 +39,7 @@ using token = Metrics::CSParser::token;
 /* msvc2010 requires that we exclude this header file. */
 #define YY_NO_UNISTD_H
 
-/* update location on matching */
+/* update _location on matching */
 #define YY_USER_ACTION loc->step(); loc->columns(yyleng);
 %}
 
@@ -55,8 +55,8 @@ using token = Metrics::CSParser::token;
 
 
 %%
-%{                                  /** Code executed at the beginning of yylex **/
-                                    yylval = lval;
+%{                              /** Code executed at the beginning of yylex **/
+                                yylval = lval;
 %}
 
 
@@ -400,7 +400,15 @@ yield                           {
 
 
 
-"{"                             {   /* Operators and punctuators */
+"@"                             {   /* Operators and punctuators */
+                                    return( token::AT );
+                                }
+
+"_"                             {
+                                    return( token::UNDERSCORE );
+                                }
+
+"{"                             {
                                     return( token::LBRACE );
                                 }
 

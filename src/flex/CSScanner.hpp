@@ -36,7 +36,7 @@ public:
 private:
     // yylval pointer
     Metrics::CSParser::semantic_type *yylval = nullptr;
-    // location pointer
+    // _location pointer
     Metrics::CSParser::location_type *loc = nullptr;
 };
 

@@ -49,6 +49,7 @@
 
     /* include for all driver functions */
     #include "../MetricsDriver.hpp"
+    #include "../Token.hpp"
 
     #undef yylex
     #define yylex scanner.yylex
@@ -162,6 +163,9 @@
 %token                  YIELD
 
 /* Operators and punctuators */
+%token                  AT                /* @ */
+%token                  UNDERSCORE        /* _ */
+
 %token                  LBRACE            /* { */
 %token                  RBRACE            /* } */
 %token                  LBRACKET          /* [ */
@@ -250,7 +254,6 @@ input_section_part
 
 input_element_list          /* input_element_list - not in specification */
     : %empty
-    | input_element
     | input_element_list input_element
     ;
 
