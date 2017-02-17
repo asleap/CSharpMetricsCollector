@@ -350,17 +350,18 @@ type
     | reference_type
     | type_parameter
     | type_unsafe
+    | type_name
     ;
 
 value_type
     : struct_type
-    | enum_type
+    /* | enum_type - enum_type -> type_name, which is already in struct_type */
     ;
 
 struct_type
-    : type_name
-    | simple_type
+    : simple_type
     | nullable_type
+    //| type_name
     ;
 
 type_name
@@ -403,15 +404,17 @@ non_nullable_value_type
     : type
     ;
 
+/*
 enum_type
     : type_name
     ;
+*/
 
 reference_type
     : class_type
     | interface_type
     | array_type
-    | delegate_type
+    //| delegate_type
     ;
 
 class_type
@@ -451,9 +454,11 @@ dim_separator
     : COMMA
     ;
 
+/*
 delegate_type
     : type_name
     ;
+*/
 
 type_parameter
     : IDENTIFIER
@@ -1582,7 +1587,7 @@ conditional_and_expression
     ;
 
 inclusive_or_expression
-    : inclusive_or_expression
+    : exclusive_or_expression
     | inclusive_or_expression VERTICAL exclusive_or_expression
     ;
 
@@ -1817,7 +1822,7 @@ element_initializer
     ;
 
 delegate_creation_expression
-    : NEW delegate_type LPAREN expression RPAREN
+    : /* NEW delegate_type LPAREN expression RPAREN */ NEW type_name LPAREN expression RPAREN
     ;
 
 anonymous_object_creation_expression
