@@ -1284,23 +1284,41 @@ unsafe_opt          /* not in specification */
     ;
 
 static_constructor_declaration
-    : attributes_opt static_constructor_modifiers IDENTIFIER LPAREN RPAREN static_constructor_body
+    : attributes_opt STATIC IDENTIFIER LPAREN RPAREN static_constructor_body
+    | attributes_opt EXTERN STATIC IDENTIFIER LPAREN RPAREN static_constructor_body
+    | attributes_opt STATIC EXTERN IDENTIFIER LPAREN RPAREN static_constructor_body
+    | attributes_opt UNSAFE STATIC IDENTIFIER LPAREN RPAREN static_constructor_body
+    | attributes_opt EXTERN UNSAFE STATIC IDENTIFIER LPAREN RPAREN static_constructor_body
+    | attributes_opt UNSAFE EXTERN STATIC IDENTIFIER LPAREN RPAREN static_constructor_body
+    | attributes_opt STATIC UNSAFE IDENTIFIER LPAREN RPAREN static_constructor_body
+    | attributes_opt EXTERN STATIC UNSAFE IDENTIFIER LPAREN RPAREN static_constructor_body
+    | attributes_opt UNSAFE STATIC EXTERN IDENTIFIER LPAREN RPAREN static_constructor_body
+    | attributes_opt STATIC EXTERN UNSAFE IDENTIFIER LPAREN RPAREN static_constructor_body
+    | attributes_opt STATIC UNSAFE EXTERN IDENTIFIER LPAREN RPAREN static_constructor_body
+    //| attributes_opt static_constructor_modifiers IDENTIFIER LPAREN RPAREN static_constructor_body
     ;
 
+/*
 static_constructor_modifiers
-    : extern_opt STATIC
-    | STATIC extern_opt
+    : STATIC
+    | EXTERN STATIC
+    | STATIC EXTERN
     | static_constructor_modifiers_unsafe
     ;
+*/
 
+/*
 static_constructor_modifiers_unsafe
-    : extern_opt unsafe_opt STATIC
-    | unsafe_opt extern_opt STATIC
-    | extern_opt STATIC unsafe_opt
-    | unsafe_opt STATIC extern_opt
-    | STATIC extern_opt unsafe_opt
-    | STATIC unsafe_opt extern_opt
+    : UNSAFE STATIC
+    | EXTERN UNSAFE STATIC
+    | UNSAFE EXTERN STATIC
+    | STATIC UNSAFE
+    | EXTERN STATIC UNSAFE
+    | UNSAFE STATIC EXTERN
+    | STATIC EXTERN UNSAFE
+    | STATIC UNSAFE EXTERN
     ;
+*/
 
 static_constructor_body
     : block
