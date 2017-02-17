@@ -2129,13 +2129,14 @@ query_expression
     ;
 
 from_clause
-    : FROM type_opt IDENTIFIER IN expression
+    : FROM IDENTIFIER IN expression
+    | FROM type IDENTIFIER IN expression
     ;
 
-type_opt            /* not in specification */
-    : %empty
-    | type
-    ;
+//type_opt            /* not in specification */
+//    : %empty
+//    | type
+//    ;
 
 query_body
     : query_body_clauses_opt select_or_group_clause query_continuation_opt
@@ -2178,11 +2179,13 @@ boolean_expression
     ;
 
 join_clause
-    : JOIN type_opt IDENTIFIER IN expression ON expression EQUALS expression
+    : JOIN IDENTIFIER IN expression ON expression EQUALS expression
+    | JOIN type IDENTIFIER IN expression ON expression EQUALS expression
     ;
 
 join_into_clause
-    : JOIN type_opt IDENTIFIER IN expression ON expression EQUALS expression INTO IDENTIFIER
+    : JOIN IDENTIFIER IN expression ON expression EQUALS expression INTO IDENTIFIER
+    | JOIN type IDENTIFIER IN expression ON expression EQUALS expression INTO IDENTIFIER
     ;
 
 orderby_clause
