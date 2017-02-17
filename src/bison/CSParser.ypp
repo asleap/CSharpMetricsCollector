@@ -1274,14 +1274,16 @@ destructor_body
     ;
 
 destructor_declaration_unsafe
-    : attributes_opt extern_opt unsafe_opt TILDE IDENTIFIER LPAREN RPAREN destructor_body
-    | attributes_opt unsafe_opt extern_opt TILDE IDENTIFIER LPAREN RPAREN destructor_body
+    : attributes_opt extern_opt UNSAFE TILDE IDENTIFIER LPAREN RPAREN destructor_body
+    | attributes_opt UNSAFE extern_opt TILDE IDENTIFIER LPAREN RPAREN destructor_body
+    //| attributes_opt extern_opt unsafe_opt TILDE IDENTIFIER LPAREN RPAREN destructor_body
+    //| attributes_opt unsafe_opt extern_opt TILDE IDENTIFIER LPAREN RPAREN destructor_body
     ;
 
-unsafe_opt          /* not in specification */
-    : %empty
-    | UNSAFE
-    ;
+//unsafe_opt          /* not in specification */
+//    : %empty
+//    | UNSAFE
+//    ;
 
 static_constructor_declaration
     : attributes_opt STATIC IDENTIFIER LPAREN RPAREN static_constructor_body
@@ -2092,14 +2094,17 @@ anonymous_function_signature
     ;
 
 implicit_anonymous_function_signature
-    : LPAREN implicit_anonymous_function_parameter_list_opt RPAREN
+    : LPAREN RPAREN
+    | LPAREN implicit_anonymous_function_parameter_list
     | implicit_anonymous_function_parameter
+    //| LPAREN implicit_anonymous_function_parameter_list_opt RPAREN
     ;
 
-implicit_anonymous_function_parameter_list_opt          /* not in specification */
-    : %empty
-    | implicit_anonymous_function_parameter_list
-    ;
+//implicit_anonymous_function_parameter_list_opt          /* not in specification */
+//    : %empty
+//    | implicit_anonymous_function_parameter_list
+//    ;
+
 
 implicit_anonymous_function_parameter_list
     : implicit_anonymous_function_parameter more_implicit_anonymous_function_parameters
