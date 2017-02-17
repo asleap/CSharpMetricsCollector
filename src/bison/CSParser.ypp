@@ -858,11 +858,12 @@ method_declaration
     ;
 
 method_header
-    : attributes_opt method_modifier_list partial_opt return_type member_name type_parameter_list_opt LPAREN formal_parameter_list_opt RPAREN type_parameter_constraints_clause_list
+    : attributes_opt partial_opt return_type member_name type_parameter_list_opt LPAREN formal_parameter_list_opt RPAREN type_parameter_constraints_clause_list
+    | attributes_opt method_modifier_list partial_opt return_type member_name type_parameter_list_opt LPAREN formal_parameter_list_opt RPAREN type_parameter_constraints_clause_list
     ;
 
 method_modifier_list                /* not in specification */
-    : %empty
+    : method_modifier
     | method_modifier_list method_modifier
     ;
 
@@ -950,11 +951,12 @@ method_body
     ;
 
 property_declaration
-    : attributes_opt property_modifier_list type member_name property_body
+    : attributes_opt type member_name property_body
+    | attributes_opt property_modifier_list type member_name property_body
     ;
 
 property_modifier_list          /* not in specification */
-    : %empty
+    : property_modifier
     | property_modifier_list property_modifier
     ;
 
@@ -1061,11 +1063,12 @@ remove_accessor_declaration
     ;
 
 indexer_declaration
-    : attributes_opt indexer_modifier_list indexer_declarator indexer_body
+    : attributes_opt indexer_declarator indexer_body
+    | attributes_opt indexer_modifier_list indexer_declarator indexer_body
     ;
 
 indexer_modifier_list           /* not in specification */
-    : %empty
+    : indexer_modifier
     | indexer_modifier_list indexer_modifier
     ;
 
@@ -1173,11 +1176,12 @@ operator_body
     ;
 
 constructor_declaration
-    : attributes_opt constructor_modifier_list constructor_declarator constructor_body
+    : attributes_opt constructor_declarator constructor_body
+    | attributes_opt constructor_modifier_list constructor_declarator constructor_body
     ;
 
 constructor_modifier_list           /* not in specification */
-    : %empty
+    : constructor_modifier
     | constructor_modifier_list constructor_modifier
     ;
 
