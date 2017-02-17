@@ -1127,13 +1127,15 @@ operator_declarator
     ;
 
 unary_operator_declarator
-    : type OPERATOR overloadable_unary_operator LPAREN type IDENTIFIER RPAREN
+    : type OPERATOR PLUS LPAREN type IDENTIFIER RPAREN
+    | type OPERATOR MINUS LPAREN type IDENTIFIER RPAREN
+    | type OPERATOR overloadable_unary_operator LPAREN type IDENTIFIER RPAREN
     ;
 
 overloadable_unary_operator
-    : PLUS
-    | MINUS
-    | EXCLAMATION
+    : EXCLAMATION
+    //| PLUS
+    //| MINUS
     | TILDE
     | DBL_PLUS
     | DBL_MINUS
@@ -1142,13 +1144,15 @@ overloadable_unary_operator
     ;
 
 binary_operator_declarator
-    : type OPERATOR overloadable_binary_operator LPAREN type IDENTIFIER COMMA type IDENTIFIER RPAREN
+    : type OPERATOR PLUS LPAREN type IDENTIFIER COMMA type IDENTIFIER RPAREN
+    | type OPERATOR MINUS LPAREN type IDENTIFIER COMMA type IDENTIFIER RPAREN
+    | type OPERATOR overloadable_binary_operator LPAREN type IDENTIFIER COMMA type IDENTIFIER RPAREN
     ;
 
 overloadable_binary_operator
-    : PLUS
-    | MINUS
-    | ASTERISK
+    : ASTERISK
+    //| PLUS
+    //| MINUS
     | SLASH
     | PERCENT
     | AMPERSAND
