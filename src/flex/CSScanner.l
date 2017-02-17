@@ -89,8 +89,28 @@ abstract                        {   /* Keywords */
                                     return( token::ABSTRACT );
                                 }
 
+add                             {
+                                    return( token::ADD );
+                                }
+
+alias                           {
+                                    return( token::ALIAS );
+                                }
+
 as                              {
                                     return( token::AS );
+                                }
+
+ascending                       {
+                                    return( token::ASCENDING );
+                                }
+
+assembly                        {
+                                    return( token::ASSEMBLY );
+                                }
+
+await                           {
+                                    return( token::AWAIT );
                                 }
 
 base                            {
@@ -103,6 +123,10 @@ bool                            {
 
 break                           {
                                     return( token::BREAK );
+                                }
+
+by                              {
+                                    return( token::BY );
                                 }
 
 byte                            {
@@ -149,6 +173,10 @@ delegate                        {
                                     return( token::DELEGATE );
                                 }
 
+descending                      {
+                                    return( token::DESCENDING );
+                                }
+
 do                              {
                                     return( token::DO );
                                 }
@@ -157,12 +185,20 @@ double                          {
                                     return( token::DOUBLE );
                                 }
 
+dynamic                         {
+                                    return( token::DYNAMIC );
+                                }
+
 else                            {
                                     return( token::ELSE );
                                 }
 
 enum                            {
                                     return( token::ENUM );
+                                }
+
+equals                          {
+                                    return( token::EQUALS );
                                 }
 
 event                           {
@@ -179,6 +215,10 @@ extern                          {
 
 false                           {
                                     return( token::FALSE );
+                                }
+
+field                           {
+                                    return( token:: FIELD );
                                 }
 
 finally                         {
@@ -201,8 +241,20 @@ foreach                         {
                                     return( token::FOREACH );
                                 }
 
+from                            {
+                                    return( token::FROM );
+                                }
+
+get                             {
+                                    return( token::GET );
+                                }
+
 goto                            {
                                     return( token::GOTO );
+                                }
+
+group                           {
+                                    return( token::GROUP );
                                 }
 
 if                              {
@@ -221,6 +273,10 @@ int                             {
                                     return( token::INT );
                                 }
 
+into                            {
+                                    return( token::INTO );
+                                }
+
 interface                       {
                                     return( token::INTERFACE );
                                 }
@@ -233,12 +289,32 @@ is                              {
                                     return( token::IS );
                                 }
 
+join                            {
+                                    return( token::JOIN );
+                                }
+
+let                             {
+                                    return( token::LET );
+                                }
+
 lock                            {
                                     return( token::LOCK );
                                 }
 
 long                            {
                                     return( token::LONG );
+                                }
+
+method                          {
+                                    return( token::METHOD );
+                                }
+
+module                          {
+                                    return( token::MODULE );
+                                }
+
+nameof                          {
+                                    return( token::NAMEOF );
                                 }
 
 namespace                       {
@@ -257,8 +333,16 @@ object                          {
                                     return( token::OBJECT );
                                 }
 
+on                              {
+                                    return( token::ON );
+                                }
+
 operator                        {
                                     return( token::OPERATOR );
+                                }
+
+orderby                         {
+                                    return( token::ORDERBY );
                                 }
 
 out                             {
@@ -269,12 +353,24 @@ override                        {
                                     return( token::OVERRIDE );
                                 }
 
+param                           {
+                                    return( token::PARAM );
+                                }
+
 params                          {
                                     return( token::PARAMS );
                                 }
 
+partial                         {
+                                    return( token::PARTIAL );
+                                }
+
 private                         {
                                     return( token::PRIVATE );
+                                }
+
+property                        {
+                                    return( token::PROPERTY );
                                 }
 
 protected                       {
@@ -293,6 +389,10 @@ ref                             {
                                     return( token::REF );
                                 }
 
+remove                          {
+                                    return( token::REMOVE );
+                                }
+
 return                          {
                                     return( token::RETURN );
                                 }
@@ -303,6 +403,14 @@ sbyte                           {
 
 sealed                          {
                                     return( token::SEALED );
+                                }
+
+select                          {
+                                    return( token::SELECT );
+                                }
+
+set                             {
+                                    return( token::SET );
                                 }
 
 short                           {
@@ -349,6 +457,10 @@ try                             {
                                     return( token::TRY );
                                 }
 
+type                            {
+                                    return( token::TYPE );
+                                }
+
 typeof                          {
                                     return( token::TYPEOF );
                                 }
@@ -377,6 +489,10 @@ using                           {
                                     return( token::USING );
                                 }
 
+var                             {
+                                    return( token::VAR );
+                                }
+
 virtual                         {
                                     return( token::VIRTUAL );
                                 }
@@ -387,6 +503,14 @@ void                            {
 
 volatile                        {
                                     return( token::VOLATILE );
+                                }
+
+when                            {
+                                    return( token::WHEN );
+                                }
+
+where                           {
+                                    return( token::WHERE );
                                 }
 
 while                           {
@@ -457,7 +581,7 @@ yield                           {
                                 }
 
 "*"                             {
-                                    return( token::STAR );
+                                    return( token::ASTERISK );
                                 }
 
 "/"                             {
@@ -553,7 +677,7 @@ yield                           {
                                 }
 
 "*="                            {
-                                    return( token::STAR_EQUAL );
+                                    return( token::ASTERISK_EQUAL );
                                 }
 
 "/="                            {
@@ -628,12 +752,12 @@ yield                           {
                                     return( token::REAL_LITERAL );
                                 }
 
-\'([^\'\\x5c\r\n]|(\\x5c\'|\\x5c\"|\\x5c0|\\x5ca|\\x5cb|\\x5cf|\\x5cn|\\x5cr|\\x5ct|\\x5cv)|\\x5cx[0-9a-fA-F][0-9a-fA-F]?[0-9a-fA-F]?[0-9a-fA-F]?|\\x5c[uU][0-9a-fA-F]{4})\' {
+\'([^\'\\x5c\r\n]|(\\x5c\'|\\x5c\"|\\x5c0|\\x5ca|\\x5cb|\\x5cf|\\x5cn|\\x5cr|\\x5ct|\\x5cv)|\\x5cx[0-9a-fA-F][0-9a-fA-F]?[0-9a-fA-F]?[0-9a-fA-F]?|\\x5c[u][0-9a-fA-F]{4}|\\x5c[U][0-9a-fA-F]{8})\' {
                                     yylval->build< std::string >( yytext );
                                     return( token::CHARACTER_LITERAL );
                                 }
 
-(\"([^\"\\x5c\r\n]|(\\x5c\'|\\x5c\"|\\x5c0|\\x5ca|\\x5cb|\\x5cf|\\x5cn|\\x5cr|\\x5ct|\\x5cv)|\\x5cx[0-9a-fA-F][0-9a-fA-F]?[0-9a-fA-F]?[0-9a-fA-F]?|\\x5c[uU][0-9a-fA-F]{4})*\")|(@\"([^\"]|(\"\"))*\") {
+(\"([^\"\\x5c\r\n]|(\\x5c\'|\\x5c\"|\\x5c0|\\x5ca|\\x5cb|\\x5cf|\\x5cn|\\x5cr|\\x5ct|\\x5cv)|\\x5cx[0-9a-fA-F][0-9a-fA-F]?[0-9a-fA-F]?[0-9a-fA-F]?|\\x5c[u][0-9a-fA-F]{4}|\\x5c[U][0-9a-fA-F]{8})*\")|(@\"([^\"]|(\"\"))*\") {
                                     yylval->build< std::string >( yytext );
                                     return( token::STRING_LITERAL );
                                 }

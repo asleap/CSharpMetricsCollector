@@ -1,10 +1,4 @@
-public static Vector2 getIntersectionPoint(Crossroad a, Crossroad b, Crossroad c, Crossroad d)
 {
-    float x12 = a.x - b.x;
-    float x34 = c.x - d.x;
-    float y12 = a.y - b.y;
-    float y34 = c.y - d.y;
-
     float f = x12 * y34 - y12 * x34;
     if (Math.Abs(f) < 0.01)
     {

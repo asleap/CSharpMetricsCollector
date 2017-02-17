@@ -1,6 +1,11 @@
 /**
  * A C# grammar for Bison written in correspondance to C# 6 language
  * specification found here: https://github.com/ljw1004/csharpspec
+ *
+ * Auxilary definitions (designated with "not in specification" comment):
+ *      <production_name>_opt - 0 or 1 time
+ *      <production_name>_list - 0 or more / 1 or more
+ *      more_<production_name>s - describes following construction: ([.,] <production_name>)*
  */
 
 
@@ -52,7 +57,7 @@
     #include "../Token.hpp"
 
     #undef yylex
-    #define yylex scanner.yylex
+    #define yylex scanner.yylexwrap
 }
 
 
@@ -84,10 +89,16 @@
 
 /* Keywords */
 %token                  ABSTRACT
+%token                  ADD
+%token                  ALIAS
 %token                  AS
+%token                  ASCENDING
+%token                  ASSEMBLY
+%token                  AWAIT
 %token                  BASE
 %token                  BOOL
 %token                  BREAK
+%token                  BY
 %token                  BYTE
 %token                  CASE
 %token                  CATCH
@@ -99,45 +110,66 @@
 %token                  DECIMAL
 %token                  DEFAULT
 %token                  DELEGATE
+%token                  DESCENDING
 %token                  DO
 %token                  DOUBLE
+%token                  DYNAMIC
 %token                  ELSE
 %token                  ENUM
+%token                  EQUALS
 %token                  EVENT
 %token                  EXPLICIT
 %token                  EXTERN
 %token                  FALSE
+%token                  FIELD
 %token                  FINALLY
 %token                  FIXED
 %token                  FLOAT
 %token                  FOR
 %token                  FOREACH
+%token                  FROM
+%token                  GET
 %token                  GOTO
+%token                  GROUP
 %token                  IF
 %token                  IMPLICIT
 %token                  IN
 %token                  INT
+%token                  INTO
 %token                  INTERFACE
 %token                  INTERNAL
 %token                  IS
+%token                  JOIN
+%token                  LET
 %token                  LOCK
 %token                  LONG
+%token                  METHOD
+%token                  MODULE
+%token                  NAMEOF
 %token                  NAMESPACE
 %token                  NEW
 %token                  Null
 %token                  OBJECT
+%token                  ON
 %token                  OPERATOR
+%token                  ORDERBY
 %token                  OUT
 %token                  OVERRIDE
+%token                  PARAM
 %token                  PARAMS
+%token                  PARTIAL
 %token                  PRIVATE
+%token                  PROPERTY
 %token                  PROTECTED
 %token                  PUBLIC
 %token                  READONLY
 %token                  REF
+%token                  REMOVE
 %token                  RETURN
 %token                  SBYTE
 %token                  SEALED
+%token                  SELECT
+%token                  SET
 %token                  SHORT
 %token                  SIZEOF
 %token                  STACKALLOC
@@ -149,6 +181,7 @@
 %token                  THROW
 %token                  TRUE
 %token                  TRY
+%token                  TYPE
 %token                  TYPEOF
 %token                  UINT
 %token                  ULONG
@@ -156,9 +189,12 @@
 %token                  UNSAFE
 %token                  USHORT
 %token                  USING
+%token                  VAR
 %token                  VIRTUAL
 %token                  VOID
 %token                  VOLATILE
+%token                  WHEN
+%token                  WHERE
 %token                  WHILE
 %token                  YIELD
 
@@ -180,7 +216,7 @@
 
 %token                  PLUS              /* + */
 %token                  MINUS             /* - */
-%token                  STAR              /* * */
+%token                  ASTERISK          /* * */
 %token                  SLASH             /* / */
 %token                  PERCENT           /* % */
 %token                  AMPERSAND         /* & */
@@ -206,7 +242,7 @@
 %token                  GREATER_EQUAL     /* >= */
 %token                  PLUS_EQUAL        /* += */
 %token                  MINUS_EQUAL       /* -= */
-%token                  STAR_EQUAL        /* *= */
+%token                  ASTERISK_EQUAL    /* *= */
 %token                  SLASH_EQUAL       /* /= */
 %token                  PERCENT_EQUAL     /* %= */
 %token                  AMPERSAND_EQUAL   /* &= */
@@ -234,179 +270,2285 @@
 %%
 
 
+
+
 /**
- * The following tree describes all possible inputs
+ * The following tree describes language
  */
-input
-    : END
-    | input_section END
+start
+    : compilation_unit
     ;
 
-input_section
-    : input_section_part
-    | input_section input_section_part
+compilation_unit
+    : extern_alias_directive_list using_directive_list global_attributes_opt namespace_member_declaration_list
     ;
 
-input_section_part
-    : input_element_list NEW_LINE
-    // | pp_directive
-    ;
-
-input_element_list          /* input_element_list - not in specification */
+extern_alias_directive_list         /* not in specification */
     : %empty
-    | input_element_list input_element
+    | extern_alias_directive_list extern_alias_directive
     ;
 
-input_element
-    : /* WHITESPACE |*/ comment
-    | token
+using_directive_list                /* not in specification */
+    : %empty
+    | using_directive_list using_directive
     ;
 
-comment
-    : SINGLE_LINE_COMMENT
-    | MULTI_LINE_COMMENT
+global_attributes_opt               /* not in specification */
+    : %empty
+    | global_attributes
     ;
 
-token
-    : IDENTIFIER
-    | keyword
-    | INTEGER_LITERAL
-    | REAL_LITERAL
-    | CHARACTER_LITERAL
-    | STRING_LITERAL
-    // | interpolated_string_literal
-    | operator_or_punctuator
+namespace_member_declaration_list   /* not in specification */
+    : %empty
+    | namespace_member_declaration_list namespace_member_declaration
     ;
 
-keyword
-    : ABSTRACT
-    | AS
-    | BASE
+extern_alias_directive
+    : EXTERN ALIAS IDENTIFIER SEMICOLON
+    ;
+
+using_directive
+    : using_alias_directive
+    | using_namespace_directive
+    | using_static_directive
+    ;
+
+using_alias_directive
+    : USING IDENTIFIER EQUAL namespace_or_type_name SEMICOLON
+    ;
+
+namespace_or_type_name
+    : IDENTIFIER type_argument_list_opt
+    | namespace_or_type_name DOT IDENTIFIER type_argument_list_opt
+    | qualified_alias_member
+    ;
+
+type_argument_list_opt              /* not in specification */
+    : %empty
+    | type_argument_list
+    ;
+
+type_argument_list
+    : LESS type_arguments GREATER
+    ;
+
+type_arguments
+    : type_argument more_type_arguments
+    ;
+
+more_type_arguments         /* not in specification */
+    : %empty
+    | more_type_arguments COMMA type_argument
+    ;
+
+type_argument
+    : type
+    ;
+
+type
+    : value_type
+    | reference_type
+    | type_parameter
+    | type_unsafe
+    ;
+
+value_type
+    : struct_type
+    | enum_type
+    ;
+
+struct_type
+    : type_name
+    | simple_type
+    | nullable_type
+    ;
+
+type_name
+    : namespace_or_type_name
+    ;
+
+simple_type
+    : numeric_type
     | BOOL
-    | BREAK
-    | BYTE
-    | CASE
-    | CATCH
-    | CHAR
-    | CHECKED
-    | CLASS
-    | CONST
-    | CONTINUE
-    | DECIMAL
-    | DEFAULT
-    | DELEGATE
-    | DO
-    | DOUBLE
-    | ELSE
-    | ENUM
-    | EVENT
-    | EXPLICIT
-    | EXTERN
-    | FALSE
-    | FINALLY
-    | FIXED
-    | FLOAT
-    | FOR
-    | FOREACH
-    | GOTO
-    | IF
-    | IMPLICIT
-    | IN
-    | INT
-    | INTERFACE
-    | INTERNAL
-    | IS
-    | LOCK
-    | LONG
-    | NAMESPACE
-    | NEW
-    | Null
-    | OBJECT
-    | OPERATOR
-    | OUT
-    | OVERRIDE
-    | PARAMS
-    | PRIVATE
-    | PROTECTED
-    | PUBLIC
-    | READONLY
-    | REF
-    | RETURN
-    | SBYTE
-    | SEALED
-    | SHORT
-    | SIZEOF
-    | STACKALLOC
-    | STATIC
-    | STRING
-    | STRUCT
-    | SWITCH
-    | THIS
-    | THROW
-    | TRUE
-    | TRY
-    | TYPEOF
-    | UINT
-    | ULONG
-    | UNCHECKED
-    | UNSAFE
-    | USHORT
-    | USING
-    | VIRTUAL
-    | VOID
-    | VOLATILE
-    | WHILE
-    | YIELD
     ;
 
-operator_or_punctuator
-    : LBRACE
-    | RBRACE
-    | LBRACKET
-    | RBRACKET
-    | LPAREN
-    | RPAREN
-    | DOT
-    | COMMA
-    | COLON
+numeric_type
+    : integral_type
+    | floating_point_type
+    | DECIMAL
+    ;
+
+integral_type
+    : SBYTE
+    | BYTE
+    | SHORT
+    | USHORT
+    | INT
+    | UINT
+    | LONG
+    | ULONG
+    | CHAR
+    ;
+
+floating_point_type
+    : FLOAT
+    | DOUBLE
+    ;
+
+nullable_type
+    : non_nullable_value_type QUESTION
+    ;
+
+non_nullable_value_type
+    : type
+    ;
+
+enum_type
+    : type_name
+    ;
+
+reference_type
+    : class_type
+    | interface_type
+    | array_type
+    | delegate_type
+    ;
+
+class_type
+    : type_name
+    | OBJECT
+    | DYNAMIC
+    | STRING
+    ;
+
+interface_type
+    : type_name
+    ;
+
+array_type
+    : non_array_type rank_specifier_list
+    ;
+
+non_array_type
+    : type
+    ;
+
+rank_specifier_list                 /* not in specification */
+    : rank_specifier
+    | rank_specifier_list rank_specifier
+    ;
+
+rank_specifier
+    : LBRACKET dim_separator_list RBRACKET
+    ;
+
+dim_separator_list                  /* not in specification */
+    : %empty
+    | dim_separator_list dim_separator
+    ;
+
+dim_separator
+    : COMMA
+    ;
+
+delegate_type
+    : type_name
+    ;
+
+type_parameter
+    : IDENTIFIER
+    ;
+
+type_unsafe
+    : pointer_type
+    ;
+
+pointer_type
+    : unmanaged_type ASTERISK
+    | VOID ASTERISK
+    ;
+
+unmanaged_type
+    : type
+    ;
+
+qualified_alias_member
+    : IDENTIFIER DBL_COLON IDENTIFIER type_argument_list_opt
+    ;
+
+using_namespace_directive
+    : USING namespace_name SEMICOLON
+    ;
+
+namespace_name
+    : namespace_or_type_name
+    ;
+
+using_static_directive
+    : USING STATIC type_name SEMICOLON
+    ;
+
+global_attributes
+    : global_attributes_section_list
+    ;
+
+global_attributes_section_list          /* not in specification */
+    : global_attributes_section
+    | global_attributes_section_list global_attributes_section
+    ;
+
+global_attributes_section
+    : LBRACKET global_attribute_target_specifier attribute_list RBRACKET
+    | LBRACKET global_attribute_target_specifier attribute_list COMMA RBRACKET
+    ;
+
+global_attribute_target_specifier
+    : global_attribute_target COLON
+    ;
+
+global_attribute_target
+    : ASSEMBLY
+    | MODULE
+    ;
+
+attribute_list
+    : attribute more_attributes
+    ;
+
+attribute
+    : attribute_name attribute_arguments_opt
+    ;
+
+more_attributes                     /* not in specification */
+    : %empty
+    | more_attributes COMMA attribute
+    ;
+
+attribute_name
+    : type_name
+    ;
+
+attribute_arguments_opt             /* not in specification */
+    : %empty
+    | attribute_arguments
+    ;
+
+attribute_arguments
+    : LPAREN positional_argument_list_opt RPAREN
+    | LPAREN positional_argument_list COMMA named_argument_list RPAREN
+    | LPAREN named_argument_list RPAREN
+    ;
+
+positional_argument_list_opt        /* not in specification */
+    : %empty
+    | positional_argument_list
+    ;
+
+positional_argument_list
+    : positional_argument more_positional_arguments
+    ;
+
+positional_argument
+    : attribute_argument_expression
+    ;
+
+attribute_argument_expression
+    : expression
+    ;
+
+more_positional_arguments           /* not in specification */
+    : %empty
+    | more_positional_arguments COMMA positional_argument
+    ;
+
+named_argument_list
+    : named_argument more_named_arguments
+    ;
+
+named_argument
+    : IDENTIFIER EQUAL attribute_argument_expression
+    ;
+
+more_named_arguments                /* not in specification */
+    : %empty
+    | more_positional_arguments COMMA named_argument
+    ;
+
+namespace_member_declaration
+    : namespace_declaration
+    | type_declaration
+    ;
+
+namespace_declaration
+    : NAMESPACE qualified_identifier namespace_body semicolon_opt
+    ;
+
+semicolon_opt                       /* not in specification */
+    : %empty
     | SEMICOLON
-    | PLUS
+    ;
+
+qualified_identifier
+    : IDENTIFIER more_identifiers
+    ;
+
+more_identifiers                    /* not in specification */
+    : %empty
+    | more_identifiers DOT IDENTIFIER
+    ;
+
+namespace_body
+    : LBRACE extern_alias_directive_list using_directive_list namespace_member_declaration_list RBRACE
+    ;
+
+type_declaration
+    : class_declaration
+    | struct_declaration
+    | interface_declaration
+    | enum_declaration
+    | delegate_declaration
+    ;
+
+class_declaration
+    : attributes_opt class_modifier_list partial_opt CLASS IDENTIFIER type_parameter_list_opt class_base_opt type_parameter_constraints_clause_list class_body semicolon_opt
+    ;
+
+attributes_opt                  /* not in specification */
+    : %empty
+    | attributes
+    ;
+
+class_modifier_list             /* not in specification */
+    : %empty
+    | class_modifier_list class_modifier
+    ;
+
+partial_opt                     /* not in specification */
+    : %empty
+    | PARTIAL
+    ;
+
+type_parameter_list_opt         /* not in specification */
+    : %empty
+    | type_parameter_list
+    ;
+
+class_base_opt                  /* not in specification */
+    : %empty
+    | class_base
+    ;
+
+type_parameter_constraints_clause_list          /* not in specification */
+    : %empty
+    | type_parameter_constraints_clause_list type_parameter_constraints_clause
+    ;
+
+attributes
+    : attribute_section_list
+    ;
+
+attribute_section_list          /* not in specification */
+    : attribute_section
+    | attribute_section_list attribute_section
+    ;
+
+attribute_section
+    : LBRACKET attribute_target_specifier_opt attribute_list RBRACKET
+    | LBRACKET attribute_target_specifier_opt attribute_list COMMA RBRACKET
+    ;
+
+attribute_target_specifier_opt          /* not in specification */
+    : %empty
+    | attribute_target_specifier
+    ;
+
+attribute_target_specifier
+    : attribute_target COLON
+    ;
+
+attribute_target
+    : FIELD
+    | EVENT
+    | METHOD
+    | PARAM
+    | PROPERTY
+    | RETURN
+    | TYPE
+    ;
+
+class_modifier
+    : NEW
+    | PUBLIC
+    | PROTECTED
+    | INTERNAL
+    | PRIVATE
+    | ABSTRACT
+    | SEALED
+    | STATIC
+    | class_modifier_unsafe
+    ;
+
+class_modifier_unsafe
+    : UNSAFE
+    ;
+
+type_parameter_list
+    : LESS type_parameters GREATER
+    ;
+
+type_parameters
+    : attributes_opt type_parameter
+    | type_parameters COMMA attributes_opt type_parameter
+    ;
+
+class_base
+    : COLON class_type
+    | COLON interface_type_list
+    | class_type COMMA interface_type_list
+    ;
+
+interface_type_list
+    : interface_type more_interface_types
+    ;
+
+more_interface_types
+    : %empty
+    | more_interface_types COMMA interface_type
+    ;
+
+type_parameter_constraints_clause
+    : WHERE type_parameter COLON type_parameter_constraints
+    ;
+
+type_parameter_constraints
+    : primary_constraint
+    | secondary_constraints
+    | constructor_constraint
+    | primary_constraint COMMA secondary_constraints
+    | primary_constraint COMMA constructor_constraint
+    | secondary_constraints COMMA constructor_constraint
+    | primary_constraint COMMA secondary_constraints COMMA constructor_constraint
+    ;
+
+primary_constraint
+    : class_type
+    | CLASS
+    | STRUCT
+    ;
+
+secondary_constraints
+    : interface_type
+    | type_parameter
+    | secondary_constraints COMMA interface_type
+    | secondary_constraints COMMA type_parameter
+    ;
+
+constructor_constraint
+    : NEW LPAREN RPAREN
+    ;
+
+class_body
+    : LBRACE class_member_declaration_list RBRACE
+    ;
+
+class_member_declaration_list               /* not in specification */
+    : %empty
+    | class_member_declaration_list class_member_declaration
+    ;
+
+class_member_declaration
+    : constant_declaration
+    | field_declaration
+    | method_declaration
+    | property_declaration
+    | event_declaration
+    | indexer_declaration
+    | operator_declaration
+    | constructor_declaration
+    | destructor_declaration
+    | static_constructor_declaration
+    | type_declaration
+    ;
+
+constant_declaration
+    : attributes_opt constant_modifier_list CONST type constant_declarators SEMICOLON
+    ;
+
+constant_modifier_list                  /* not in specification */
+    : %empty
+    | constant_modifier_list constant_modifier
+    ;
+
+constant_modifier
+    : NEW
+    | PUBLIC
+    | PROTECTED
+    | INTERNAL
+    | PRIVATE
+    ;
+
+constant_declarators
+    : constant_declarator more_constant_declarators
+    ;
+
+constant_declarator
+    : IDENTIFIER EQUAL constant_expression
+    ;
+
+constant_expression
+    : expression
+    ;
+
+more_constant_declarators               /* not in specification */
+    : %empty
+    | more_constant_declarators COMMA constant_declarator
+    ;
+
+field_declaration
+    : attributes_opt field_modifier_list type variable_declarators SEMICOLON
+    ;
+
+field_modifier_list                     /* not in specification */
+    : %empty
+    | field_modifier_list field_modifier
+    ;
+
+field_modifier
+    : NEW
+    | PUBLIC
+    | PROTECTED
+    | INTERNAL
+    | PRIVATE
+    | STATIC
+    | READONLY
+    | VOLATILE
+    | field_modifier_unsafe
+    ;
+
+field_modifier_unsafe
+    : UNSAFE
+    ;
+
+variable_declarators
+    : variable_declarator more_variable_declarators
+    ;
+
+variable_declarator
+    : IDENTIFIER
+    | IDENTIFIER EQUAL variable_initializer
+    ;
+
+variable_initializer
+    : expression
+    | array_initializer
+    ;
+
+more_variable_declarators
+    : %empty
+    | more_variable_declarators COMMA variable_declarator
+    ;
+
+method_declaration
+    : method_header method_body
+    ;
+
+method_header
+    : attributes_opt method_modifier_list partial_opt return_type member_name type_parameter_list_opt LPAREN formal_parameter_list_opt RPAREN type_parameter_constraints_clause_list
+    ;
+
+method_modifier_list                /* not in specification */
+    : %empty
+    | method_modifier_list method_modifier
+    ;
+
+method_modifier
+    : NEW
+    | PUBLIC
+    | PROTECTED
+    | INTERNAL
+    | PRIVATE
+    | STATIC
+    | VIRTUAL
+    | SEALED
+    | OVERRIDE
+    | ABSTRACT
+    | EXTERN
+    | method_modifier_unsafe
+    ;
+
+method_modifier_unsafe
+    : UNSAFE
+    ;
+
+return_type
+    : type
+    | VOID
+    ;
+
+member_name
+    : IDENTIFIER
+    | interface_type DOT IDENTIFIER
+    ;
+
+formal_parameter_list_opt           /* not in specification */
+    : %empty
+    | formal_parameter_list
+    ;
+
+formal_parameter_list
+    : fixed_parameters
+    | fixed_parameters COMMA parameter_array
+    | parameter_array
+    ;
+
+fixed_parameters
+    : fixed_parameter more_fixed_parameters
+    ;
+
+fixed_parameter
+    : attributes_opt parameter_modifier_opt type IDENTIFIER default_argument_opt
+    ;
+
+parameter_modifier_opt              /* not in specification */
+    : %empty
+    | parameter_modifier
+    ;
+
+parameter_modifier
+    : REF
+    | OUT
+    | THIS
+    ;
+
+default_argument_opt                /* not in specification */
+    : %empty
+    | default_argument
+    ;
+
+default_argument
+    : EQUAL expression
+    ;
+
+more_fixed_parameters               /* not in specification */
+    : %empty
+    | more_fixed_parameters COMMA fixed_parameter
+    ;
+
+parameter_array
+    : attributes_opt PARAMS array_type IDENTIFIER
+    ;
+
+method_body
+    : block
+    | EQUAL_GREATER expression SEMICOLON
+    | SEMICOLON
+    ;
+
+property_declaration
+    : attributes_opt property_modifier_list type member_name property_body
+    ;
+
+property_modifier_list          /* not in specification */
+    : %empty
+    | property_modifier_list property_modifier
+    ;
+
+property_modifier
+    : NEW
+    | PUBLIC
+    | PROTECTED
+    | INTERNAL
+    | PRIVATE
+    | STATIC
+    | VIRTUAL
+    | SEALED
+    | OVERRIDE
+    | ABSTRACT
+    | EXTERN
+    ;
+
+property_body
+    : LBRACE accessor_declarations RBRACE property_initializer_opt
+    | EQUAL_GREATER expression SEMICOLON
+    ;
+
+accessor_declarations
+    : get_accessor_declaration
+    | get_accessor_declaration set_accessor_declaration
+    | set_accessor_declaration
+    | set_accessor_declaration get_accessor_declaration
+    ;
+
+get_accessor_declaration
+    : attributes_opt accessor_modifier_opt GET accessor_body
+    ;
+
+accessor_modifier_opt           /* not in specification */
+    : %empty
+    | accessor_modifier
+    ;
+
+accessor_modifier
+    : PROTECTED
+    | INTERNAL
+    | PRIVATE
+    | PROTECTED INTERNAL
+    | INTERNAL PROTECTED
+    ;
+
+accessor_body
+    : block
+    | SEMICOLON
+    ;
+
+set_accessor_declaration
+    : attributes_opt accessor_modifier_opt SET accessor_body
+    ;
+
+property_initializer_opt        /* not in specification */
+    : %empty
+    | property_initializer
+    ;
+
+property_initializer
+    : EQUAL variable_initializer
+    ;
+
+event_declaration
+    : attributes_opt event_modifier_list EVENT type variable_declarators SEMICOLON
+    | attributes_opt event_modifier_list EVENT type member_name LBRACE event_accessor_declarations RBRACE
+
+event_modifier_list             /* not in specification */
+    : %empty
+    | event_modifier_list event_modifier
+    ;
+
+event_modifier
+    : NEW
+    | PUBLIC
+    | PROTECTED
+    | INTERNAL
+    | PRIVATE
+    | STATIC
+    | VIRTUAL
+    | SEALED
+    | OVERRIDE
+    | ABSTRACT
+    | EXTERN
+    | event_modifier_unsafe
+    ;
+
+event_modifier_unsafe
+    : UNSAFE
+    ;
+
+event_accessor_declarations
+    : add_accessor_declaration remove_accessor_declaration
+    | remove_accessor_declaration add_accessor_declaration
+    ;
+
+add_accessor_declaration
+    : attributes_opt ADD block
+    ;
+
+remove_accessor_declaration
+    : attributes_opt REMOVE block
+    ;
+
+indexer_declaration
+    : attributes_opt indexer_modifier_list indexer_declarator indexer_body
+    ;
+
+indexer_modifier_list           /* not in specification */
+    : %empty
+    | indexer_modifier_list indexer_modifier
+    ;
+
+indexer_modifier
+    : NEW
+    | PUBLIC
+    | PROTECTED
+    | INTERNAL
+    | PRIVATE
+    | VIRTUAL
+    | SEALED
+    | OVERRIDE
+    | ABSTRACT
+    | EXTERN
+    | indexer_modifier_unsafe
+    ;
+
+indexer_modifier_unsafe
+    : UNSAFE
+    ;
+
+indexer_declarator
+    : type THIS LBRACKET formal_parameter_list RBRACKET
+    | type interface_type DOT THIS LBRACKET formal_parameter_list RBRACKET
+    ;
+
+indexer_body
+    : LBRACE accessor_declarations RBRACE
+    | EQUAL_GREATER expression SEMICOLON
+    ;
+
+operator_declaration
+    : attributes_opt operator_modifier_list operator_declarator operator_body
+    ;
+
+operator_modifier_list          /* not in specification */
+    : operator_modifier
+    | operator_modifier_list operator_modifier
+    ;
+
+operator_modifier
+    : PUBLIC
+    | STATIC
+    | EXTERN
+    | operator_modifier_unsafe
+    ;
+
+operator_modifier_unsafe
+    : UNSAFE
+    ;
+
+operator_declarator
+    : unary_operator_declarator
+    | binary_operator_declarator
+    | conversion_operator_declarator
+    ;
+
+unary_operator_declarator
+    : type OPERATOR overloadable_unary_operator LPAREN type IDENTIFIER RPAREN
+    ;
+
+overloadable_unary_operator
+    : PLUS
     | MINUS
-    | STAR
+    | EXCLAMATION
+    | TILDE
+    | DBL_PLUS
+    | DBL_MINUS
+    | TRUE
+    | FALSE
+    ;
+
+binary_operator_declarator
+    : type OPERATOR overloadable_binary_operator LPAREN type IDENTIFIER COMMA type IDENTIFIER RPAREN
+    ;
+
+overloadable_binary_operator
+    : PLUS
+    | MINUS
+    | ASTERISK
     | SLASH
     | PERCENT
     | AMPERSAND
     | VERTICAL
     | CARET
-    | EXCLAMATION
-    | TILDE
-    | EQUAL
-    | LESS
-    | GREATER
-    | QUESTION
-    | DBL_QUESTION
-    | DBL_COLON
-    | DBL_PLUS
-    | DBL_MINUS
-    | DBL_AMPERSAND
-    | DBL_VERTICAL
+    | DBL_LESS
+    | DBL_GREATER
     | DBL_EQUAL
     | EXCL_EQUAL
-    | LESS_EQUAL
+    | GREATER
+    | LESS
     | GREATER_EQUAL
+    | LESS_EQUAL
+    ;
+
+conversion_operator_declarator
+    : IMPLICIT OPERATOR type LPAREN type IDENTIFIER RPAREN
+    | EXPLICIT OPERATOR type LPAREN type IDENTIFIER RPAREN
+    ;
+
+operator_body
+    : block
+    | EQUAL_GREATER expression SEMICOLON
+    | SEMICOLON
+    ;
+
+constructor_declaration
+    : attributes_opt constructor_modifier_list constructor_declarator constructor_body
+    ;
+
+constructor_modifier_list           /* not in specification */
+    : %empty
+    | constructor_modifier_list constructor_modifier
+    ;
+
+constructor_modifier
+    : PUBLIC
+    | PROTECTED
+    | INTERNAL
+    | PRIVATE
+    | EXTERN
+    | constructor_modifier_unsafe
+    ;
+
+constructor_modifier_unsafe
+    : UNSAFE
+    ;
+
+constructor_declarator
+    : IDENTIFIER LPAREN formal_parameter_list_opt RPAREN constructor_initializer_opt
+    ;
+
+constructor_initializer_opt         /* not in specification */
+    : %empty
+    | constructor_initializer
+    ;
+
+constructor_initializer
+    : COLON BASE LPAREN argument_list_opt RPAREN
+    | COLON THIS LPAREN argument_list_opt RPAREN
+    ;
+
+argument_list_opt               /* not in specification */
+    : %empty
+    | argument_list
+    ;
+
+argument_list
+    : argument more_arguments
+    ;
+
+argument
+    : argument_name_opt argument_value
+    ;
+
+more_arguments              /* not in specification */
+    : %empty
+    | more_arguments COMMA argument
+    ;
+
+argument_name_opt           /* not in specification */
+    : %empty
+    | argument_name
+    ;
+
+argument_name
+    : IDENTIFIER COLON
+    ;
+
+argument_value
+    : expression
+    | REF varibale_reference
+    | OUT varibale_reference
+    ;
+
+varibale_reference
+    : expression
+    ;
+
+constructor_body
+    : block
+    | SEMICOLON
+    ;
+
+destructor_declaration
+    : attributes_opt extern_opt TILDE IDENTIFIER LPAREN RPAREN destructor_body
+    | destructor_declaration_unsafe
+    ;
+
+extern_opt              /* not in specification */
+    : %empty
+    | EXTERN
+    ;
+
+destructor_body
+    : block
+    | SEMICOLON
+    ;
+
+destructor_declaration_unsafe
+    : attributes_opt extern_opt unsafe_opt TILDE IDENTIFIER LPAREN RPAREN destructor_body
+    | attributes_opt unsafe_opt extern_opt TILDE IDENTIFIER LPAREN RPAREN destructor_body
+    ;
+
+unsafe_opt          /* not in specification */
+    : %empty
+    | UNSAFE
+    ;
+
+static_constructor_declaration
+    : attributes_opt static_constructor_modifiers IDENTIFIER LPAREN RPAREN static_constructor_body
+    ;
+
+static_constructor_modifiers
+    : extern_opt STATIC
+    | STATIC extern_opt
+    | static_constructor_modifiers_unsafe
+    ;
+
+static_constructor_modifiers_unsafe
+    : extern_opt unsafe_opt STATIC
+    | unsafe_opt extern_opt STATIC
+    | extern_opt STATIC unsafe_opt
+    | unsafe_opt STATIC extern_opt
+    | STATIC extern_opt unsafe_opt
+    | STATIC unsafe_opt extern_opt
+    ;
+
+static_constructor_body
+    : block
+    | SEMICOLON
+    ;
+
+struct_declaration
+    : attributes_opt struct_modifier_list partial_opt STRUCT IDENTIFIER type_parameter_list_opt struct_interfaces_opt type_parameter_constraints_clause_list struct_body semicolon_opt
+    ;
+
+struct_modifier_list            /* not in specification */
+    : %empty
+    | struct_modifier_list struct_modifier
+    ;
+
+struct_modifier
+    : NEW
+    | PUBLIC
+    | PROTECTED
+    | INTERNAL
+    | PRIVATE
+    | struct_modifier_unsafe
+    ;
+
+struct_modifier_unsafe
+    : UNSAFE
+    ;
+
+struct_interfaces_opt           /* not in specification */
+    : %empty
+    | struct_interfaces
+    ;
+
+struct_interfaces
+    : COLON interface_type_list
+    ;
+
+struct_body
+    : LBRACE struct_member_declaration_list RBRACE
+    ;
+
+struct_member_declaration_list          /* not in specification */
+    : %empty
+    | struct_member_declaration_list struct_member_declaration
+    ;
+
+struct_member_declaration
+    : constant_declaration
+    | field_declaration
+    | method_declaration
+    | property_declaration
+    | event_declaration
+    | indexer_declaration
+    | operator_declaration
+    | constructor_declaration
+    | static_constructor_declaration
+    | type_declaration
+    | struct_member_declaration_unsafe
+    ;
+
+struct_member_declaration_unsafe
+    : fixed_size_buffer_declaration
+    ;
+
+fixed_size_buffer_declaration
+    : attributes_opt fixed_size_buffer_modifier_list FIXED buffer_element_type fixed_size_buffer_declarator_list SEMICOLON
+    ;
+
+fixed_size_buffer_modifier_list             /* not in specification */
+    : %empty
+    | fixed_size_buffer_modifier_list fixed_size_buffer_modifier
+    ;
+
+fixed_size_buffer_modifier
+    : NEW
+    | PUBLIC
+    | PROTECTED
+    | INTERNAL
+    | PRIVATE
+    | UNSAFE
+    ;
+
+buffer_element_type
+    : type
+    ;
+
+fixed_size_buffer_declarator_list           /* not in specification */
+    : fixed_size_buffer_declarator
+    | fixed_size_buffer_declarator_list fixed_size_buffer_declarator
+    ;
+
+fixed_size_buffer_declarator
+    : IDENTIFIER LBRACKET constant_expression RBRACKET
+    ;
+
+interface_declaration
+    : attributes_opt interface_modifier_list partial_opt INTERFACE IDENTIFIER variant_type_parameter_list_opt interface_base_opt type_parameter_constraints_clause_list interface_body semicolon_opt
+    ;
+
+interface_modifier_list             /* not in specification */
+    : %empty
+    | interface_modifier_list interface_modifier
+    ;
+
+interface_modifier
+    : NEW
+    | PUBLIC
+    | PROTECTED
+    | INTERNAL
+    | PRIVATE
+    | interface_modifier_unsafe
+    ;
+
+interface_modifier_unsafe
+    : UNSAFE
+    ;
+
+variant_type_parameter_list_opt             /* not in specification */
+    : %empty
+    | variant_type_parameter_list
+    ;
+
+variant_type_parameter_list
+    : LESS variant_type_parameters GREATER
+    ;
+
+variant_type_parameters
+    : attributes_opt variance_annotation_opt type_parameter
+    | variant_type_parameters COMMA attributes_opt variance_annotation_opt type_parameter
+    ;
+
+variance_annotation_opt             /* not in specification */
+    : %empty
+    | variance_annotation
+    ;
+
+variance_annotation
+    : IN
+    | OUT
+    ;
+
+interface_base_opt          /* not in specification */
+    : %empty
+    | interface_base
+    ;
+
+interface_base
+    : COLON interface_type_list
+    ;
+
+interface_body
+    : LBRACE interface_member_declaration_list RBRACE
+    ;
+
+interface_member_declaration_list           /* not in specification */
+    : %empty
+    | interface_member_declaration_list interface_member_declaration
+    ;
+
+interface_member_declaration
+    : interface_method_declaration
+    | interface_property_declaration
+    | interface_event_declaration
+    | interface_indexer_declaration
+    ;
+
+interface_method_declaration
+    : attributes_opt new_opt return_type IDENTIFIER type_parameter_list LPAREN formal_parameter_list_opt RPAREN type_parameter_constraints_clause_list SEMICOLON
+    ;
+
+new_opt             /* not in specification */
+    : %empty
+    | NEW
+    ;
+
+interface_property_declaration
+    : attributes_opt new_opt type IDENTIFIER LBRACE interface_accessors RBRACE
+    ;
+
+interface_accessors
+    : attributes_opt GET SEMICOLON
+    | attributes_opt SET SEMICOLON
+    | attributes_opt GET SEMICOLON attributes_opt SET SEMICOLON
+    | attributes_opt SET SEMICOLON attributes_opt GET SEMICOLON
+    ;
+
+interface_event_declaration
+    : attributes_opt new_opt EVENT type IDENTIFIER SEMICOLON
+    ;
+
+interface_indexer_declaration
+    : attributes_opt new_opt type THIS LBRACKET formal_parameter_list RBRACKET LBRACE interface_accessors RBRACE
+    ;
+
+enum_declaration
+    : attributes_opt enum_modifier_list ENUM IDENTIFIER enum_base_opt enum_body semicolon_opt
+    ;
+
+enum_modifier_list          /* not in specification */
+    : %empty
+    | enum_modifier_list enum_modifier
+    ;
+
+enum_modifier
+    : NEW
+    | PUBLIC
+    | PROTECTED
+    | INTERNAL
+    | PRIVATE
+    ;
+
+enum_base_opt           /* not in specification */
+    : %empty
+    | enum_base
+    ;
+
+enum_base
+    : COLON integral_type
+    ;
+
+enum_body
+    : LBRACE RBRACE
+    | LBRACE enum_member_declarations RBRACE
+    | LBRACE enum_member_declarations COMMA RBRACE
+    ;
+
+enum_member_declarations
+    : enum_member_declaration more_enum_member_declarations
+    ;
+
+more_enum_member_declarations           /* not in specification */
+    : %empty
+    | more_enum_member_declarations COMMA enum_member_declaration
+    ;
+
+enum_member_declaration
+    : attributes_opt IDENTIFIER
+    | attributes_opt IDENTIFIER EQUAL constant_expression
+    ;
+
+delegate_declaration
+    : attributes_opt delegate_modifier_list DELEGATE return_type IDENTIFIER variant_type_parameter_list_opt LPAREN formal_parameter_list_opt RPAREN type_parameter_constraints_clause_list semicolon_opt
+    ;
+
+delegate_modifier_list          /* not in specification */
+    : %empty
+    | delegate_modifier_list delegate_modifier
+    ;
+
+delegate_modifier
+    : NEW
+    | PUBLIC
+    | PROTECTED
+    | INTERNAL
+    | PRIVATE
+    | delegate_modifier_unsafe
+    ;
+
+delegate_modifier_unsafe
+    : UNSAFE
+    ;
+
+expression
+    : non_assignment_expression
+    | assignment
+    ;
+
+non_assignment_expression
+    : conditional_expression
+    | lambda_expression
+    | query_expression
+    ;
+
+conditional_expression
+    : null_coalescing_expression
+    | null_coalescing_expression QUESTION expression COLON expression
+    ;
+
+null_coalescing_expression
+    : conditional_or_expression
+    | conditional_or_expression DBL_QUESTION null_coalescing_expression
+    ;
+
+conditional_or_expression
+    : conditional_and_expression
+    | conditional_or_expression DBL_VERTICAL conditional_and_expression
+    ;
+
+conditional_and_expression
+    : inclusive_or_expression
+    | conditional_and_expression DBL_AMPERSAND inclusive_or_expression
+    ;
+
+inclusive_or_expression
+    : inclusive_or_expression
+    | inclusive_or_expression VERTICAL exclusive_or_expression
+    ;
+
+exclusive_or_expression
+    : and_expression
+    | exclusive_or_expression CARET and_expression
+    ;
+
+and_expression
+    : equality_expression
+    | and_expression AMPERSAND equality_expression
+    ;
+
+equality_expression
+    : relational_expression
+    | equality_expression DBL_EQUAL relational_expression
+    | equality_expression EXCL_EQUAL relational_expression
+    ;
+
+relational_expression
+    : shift_expression
+    | relational_expression LESS shift_expression
+    | relational_expression GREATER shift_expression
+    | relational_expression LESS_EQUAL shift_expression
+    | relational_expression GREATER_EQUAL shift_expression
+    | relational_expression IS type
+    | relational_expression AS type
+    ;
+
+shift_expression
+    : additive_expression
+    | shift_expression DBL_LESS additive_expression
+    | shift_expression DBL_GREATER additive_expression
+    ;
+
+additive_expression
+    : multiplicative_expression
+    | additive_expression PLUS multiplicative_expression
+    | additive_expression MINUS multiplicative_expression
+    ;
+
+multiplicative_expression
+    : unary_expression
+    | multiplicative_expression ASTERISK unary_expression
+    | multiplicative_expression SLASH unary_expression
+    | multiplicative_expression PERCENT unary_expression
+    ;
+
+unary_expression
+    : primary_expression
+    | null_conditional_expression
+    | PLUS unary_expression
+    | MINUS unary_expression
+    | EXCLAMATION unary_expression
+    | TILDE unary_expression
+    | pre_increment_expression
+    | pre_decrement_expression
+    | cast_expression
+    | await_expression
+    | unary_expression_unsafe
+    ;
+
+primary_expression
+    : primary_no_array_creation_expression
+    | array_creation_expression
+    ;
+
+primary_no_array_creation_expression
+    : literal
+    // | interpolated_string_literal
+    | simple_name
+    | paranthesized_expression
+    | member_access
+    | invocation_expression
+    | element_access
+    | this_access
+    | base_access
+    | post_increment_expression
+    | post_decrement_expression
+    | object_creation_expression
+    | delegate_creation_expression
+    | anonymous_object_creation_expression
+    | typeof_expression
+    | checked_expression
+    | unchecked_expression
+    | default_value_expression
+    | nameof_expression
+    | anonymous_method_expression
+    | primary_no_array_creation_expression_unsafe
+    ;
+
+literal
+    : TRUE
+    | FALSE
+    | INTEGER_LITERAL
+    | REAL_LITERAL
+    | CHARACTER_LITERAL
+    | STRING_LITERAL
+    | Null
+    ;
+
+simple_name
+    : IDENTIFIER type_argument_list_opt
+    ;
+
+paranthesized_expression
+    : LPAREN expression RPAREN
+    ;
+
+member_access
+    : primary_expression DOT IDENTIFIER type_argument_list_opt
+    | predefined_type DOT IDENTIFIER type_argument_list_opt
+    | qualified_alias_member DOT IDENTIFIER
+    ;
+
+predefined_type
+    : BOOL
+    | BYTE
+    | CHAR
+    | DECIMAL
+    | DOUBLE
+    | FLOAT
+    | INT
+    | LONG
+    | OBJECT
+    | SBYTE
+    | SHORT
+    | STRING
+    | UINT
+    | ULONG
+    | USHORT
+    ;
+
+invocation_expression
+    : primary_expression LPAREN argument_list_opt RPAREN
+    ;
+
+element_access
+    : primary_no_array_creation_expression LBRACKET expression_list RBRACKET
+    ;
+
+expression_list
+    : expression more_expressions
+    ;
+
+more_expressions            /* not in specification */
+    : %empty
+    | more_expressions COMMA expression
+    ;
+
+this_access
+    : THIS
+
+base_access
+    : BASE DOT IDENTIFIER
+    | BASE LBRACKET expression_list RBRACKET
+    ;
+
+post_increment_expression
+    : primary_expression DBL_PLUS
+    ;
+
+post_decrement_expression
+    : primary_expression DBL_MINUS
+    ;
+
+object_creation_expression
+    : NEW type LPAREN argument_list_opt RPAREN object_or_collection_initializer_opt
+    | NEW type object_or_collection_initializer
+    ;
+
+object_or_collection_initializer_opt            /* not in specification */
+    : %empty
+    | object_or_collection_initializer
+    ;
+
+object_or_collection_initializer
+    : object_initializer
+    | collection_initializer
+    ;
+
+object_initializer
+    : LBRACE member_initializer_list_opt RBRACE
+    | LBRACE member_initializer_list COMMA RBRACE
+    ;
+
+member_initializer_list_opt             /* not in specification */
+    : %empty
+    | member_initializer_list
+    ;
+
+member_initializer_list
+    : member_initializer more_member_initializers
+    ;
+
+more_member_initializers            /* not in specification */
+    : %empty
+    | more_member_initializers COMMA member_initializer
+    ;
+
+member_initializer
+    : initializer_target EQUAL initializer_value
+    ;
+
+initializer_target
+    : IDENTIFIER
+    | LBRACKET argument_list RBRACKET
+    ;
+
+initializer_value
+    : expression
+    | object_or_collection_initializer
+    ;
+
+collection_initializer
+    : LBRACE element_initializer_list RBRACE
+    | LBRACE element_initializer_list COMMA RBRACE
+    ;
+
+element_initializer_list
+    : element_initializer more_element_initializers
+    ;
+
+more_element_initializers           /* not in specification */
+    : %empty
+    | more_element_initializers COMMA element_initializer
+    ;
+
+element_initializer
+    : non_assignment_expression
+    | LBRACE expression_list RBRACE
+    ;
+
+delegate_creation_expression
+    : NEW delegate_type LPAREN expression RPAREN
+    ;
+
+anonymous_object_creation_expression
+    : NEW anonymous_object_initializer
+    ;
+
+anonymous_object_initializer
+    : LBRACE member_declarator_list_opt RBRACE
+    | LBRACE member_declarator_list COMMA RBRACE
+    ;
+
+member_declarator_list_opt          /* not in specification */
+    : %empty
+    | member_declarator_list
+    ;
+
+member_declarator_list
+    : member_declarator more_member_declarators
+    ;
+
+more_member_declarators             /* not in specification */
+    : %empty
+    | more_member_declarators COMMA member_declarator
+    ;
+
+member_declarator
+    : simple_name
+    | member_access
+    | base_access
+    | null_conditional_member_access
+    | IDENTIFIER EQUAL expression
+    ;
+
+null_conditional_member_access
+    : primary_expression null_conditional_operations_opt QUESTION DOT IDENTIFIER type_argument_list_opt
+    | primary_expression null_conditional_operations DOT IDENTIFIER type_argument_list_opt
+    ;
+
+null_conditional_operations_opt             /* not in specification */
+    : %empty
+    | null_conditional_operations
+    ;
+
+null_conditional_operations
+    : null_conditional_operations_opt QUESTION DOT IDENTIFIER type_argument_list_opt
+    | null_conditional_operations_opt QUESTION LBRACKET argument_list RBRACKET
+    | null_conditional_operations DOT IDENTIFIER type_argument_list_opt
+    | null_conditional_operations LBRACKET argument_list RBRACKET
+    | null_conditional_operations LPAREN argument_list_opt RPAREN
+    ;
+
+typeof_expression
+    : TYPEOF LPAREN type RPAREN
+    | TYPEOF LPAREN unbound_type_name RPAREN
+    | TYPEOF LPAREN VOID RPAREN
+    ;
+
+unbound_type_name
+    : IDENTIFIER generic_dimension_specifier_opt
+    | IDENTIFIER DBL_COLON IDENTIFIER generic_dimension_specifier_opt
+    | unbound_type_name DOT IDENTIFIER generic_dimension_specifier_opt
+    ;
+
+generic_dimension_specifier_opt             /* not in specification */
+    : %empty
+    | generic_dimension_specifier
+    ;
+
+generic_dimension_specifier
+    : LESS comma_list GREATER
+    ;
+
+comma_list          /* not in specification */
+    : %empty
+    | comma_list COMMA
+    ;
+
+checked_expression
+    : CHECKED LPAREN expression RPAREN
+    ;
+
+unchecked_expression
+    : UNCHECKED LPAREN expression RPAREN
+    ;
+
+default_value_expression
+    : DEFAULT LPAREN type RPAREN
+    ;
+
+nameof_expression
+    : NAMEOF LPAREN named_entity RPAREN
+    ;
+
+named_entity
+    : simple_name
+    | named_entity_target DOT IDENTIFIER type_argument_list_opt
+    ;
+
+named_entity_target
+    : THIS
+    | BASE
+    | named_entity
+    | predefined_type
+    | qualified_alias_member
+    ;
+
+anonymous_method_expression
+    : DELEGATE explicit_anonymous_function_signature_opt block
+    ;
+
+explicit_anonymous_function_signature_opt           /* not in specification */
+    : %empty
+    | explicit_anonymous_function_signature
+    ;
+
+explicit_anonymous_function_signature
+    : LPAREN explicit_anonymous_function_parameter_list_opt RPAREN
+    ;
+
+explicit_anonymous_function_parameter_list_opt          /* not in specification */
+    : %empty
+    | explicit_anonymous_function_parameter_list
+    ;
+
+explicit_anonymous_function_parameter_list
+    : explicit_anonymous_function_parameter more_explicit_anonymous_function_parameters
+    ;
+
+more_explicit_anonymous_function_parameters             /* not in specification */
+    : %empty
+    | more_explicit_anonymous_function_parameters COMMA explicit_anonymous_function_parameter
+    ;
+
+explicit_anonymous_function_parameter
+    : anonymous_function_parameter_modifier_opt type IDENTIFIER
+    ;
+
+anonymous_function_parameter_modifier_opt           /* not in specification */
+    : %empty
+    | anonymous_function_parameter_modifier
+    ;
+
+anonymous_function_parameter_modifier
+    : REF
+    | OUT
+    ;
+
+primary_no_array_creation_expression_unsafe
+    : pointer_member_access
+    | pointer_element_access
+    | sizeof_expression
+    ;
+
+pointer_member_access
+    : primary_expression MINUS_GREATER IDENTIFIER
+    ;
+
+pointer_element_access
+    : primary_no_array_creation_expression LBRACKET expression RBRACKET
+    ;
+
+sizeof_expression
+    : SIZEOF LPAREN unmanaged_type RPAREN
+    ;
+
+array_creation_expression
+    : NEW non_array_type LBRACKET expression_list RBRACKET rank_specifier_list_opt array_initializer_opt
+    | NEW array_type array_initializer
+    | NEW rank_specifier array_initializer
+    ;
+
+rank_specifier_list_opt             /* not in specification */
+    : %empty
+    | rank_specifier_list
+    ;
+
+array_initializer_opt           /* not in specification */
+    : %empty
+    | array_initializer
+    ;
+
+array_initializer
+    : LBRACE variable_initializer_list_opt RBRACE
+    | LBRACE variable_initializer_list COMMA RBRACE
+    ;
+
+variable_initializer_list_opt           /* not in specification */
+    : %empty
+    | variable_initializer_list
+    ;
+
+variable_initializer_list
+    : variable_initializer more_variable_initializers
+    ;
+
+more_variable_initializers          /* not in specification */
+    : %empty
+    | more_variable_initializers COMMA variable_initializer
+    ;
+
+null_conditional_expression
+    : primary_expression null_conditional_operations
+    ;
+
+pre_increment_expression
+    : DBL_PLUS unary_expression
+    ;
+
+pre_decrement_expression
+    : DBL_MINUS unary_expression
+    ;
+
+cast_expression
+    : LPAREN type RPAREN unary_expression
+    ;
+
+await_expression
+    : AWAIT unary_expression
+    ;
+
+unary_expression_unsafe
+    : pointer_indirection_expression
+    | addressof_expression
+    ;
+
+pointer_indirection_expression
+    : ASTERISK unary_expression
+    ;
+
+addressof_expression
+    : AMPERSAND unary_expression
+    ;
+
+lambda_expression
+    : anonymous_function_signature EQUAL_GREATER anonymous_function_body
+    ;
+
+anonymous_function_signature
+    : explicit_anonymous_function_signature
+    | implicit_anonymous_function_signature
+    ;
+
+implicit_anonymous_function_signature
+    : LPAREN implicit_anonymous_function_parameter_list_opt RPAREN
+    | implicit_anonymous_function_parameter
+    ;
+
+implicit_anonymous_function_parameter_list_opt          /* not in specification */
+    : %empty
+    | implicit_anonymous_function_parameter_list
+    ;
+
+implicit_anonymous_function_parameter_list
+    : implicit_anonymous_function_parameter more_implicit_anonymous_function_parameters
+    ;
+
+more_implicit_anonymous_function_parameters             /* not in specification */
+    : %empty
+    | more_implicit_anonymous_function_parameters COMMA implicit_anonymous_function_parameter
+    ;
+
+implicit_anonymous_function_parameter
+    : IDENTIFIER
+    ;
+
+anonymous_function_body
+    : expression
+    | block
+    ;
+
+query_expression
+    : from_clause query_body
+    ;
+
+from_clause
+    : FROM type_opt IDENTIFIER IN expression
+    ;
+
+type_opt            /* not in specification */
+    : %empty
+    | type
+    ;
+
+query_body
+    : query_body_clauses_opt select_or_group_clause query_continuation_opt
+    ;
+
+query_body_clauses_opt          /* not in specification */
+    : %empty
+    | query_body_clauses
+    ;
+
+query_continuation_opt          /* not in specification */
+    : %empty
+    | query_continuation
+    ;
+
+query_body_clauses
+    : query_body_clause
+    | query_body_clauses query_body_clause
+    ;
+
+query_body_clause
+    : from_clause
+    | let_clause
+    | where_clause
+    | join_clause
+    | join_into_clause
+    | orderby_clause
+    ;
+
+let_clause
+    : LET IDENTIFIER EQUAL expression
+    ;
+
+where_clause
+    : WHERE boolean_expression
+    ;
+
+boolean_expression
+    : expression
+    ;
+
+join_clause
+    : JOIN type_opt IDENTIFIER IN expression ON expression EQUALS expression
+    ;
+
+join_into_clause
+    : JOIN type_opt IDENTIFIER IN expression ON expression EQUALS expression INTO IDENTIFIER
+    ;
+
+orderby_clause
+    : ORDERBY orderings
+    ;
+
+orderings
+    : ordering more_orderings
+    ;
+
+more_orderings          /* not in specification */
+    : %empty
+    | more_orderings COMMA ordering
+    ;
+
+ordering
+    : expression ordering_direction_opt
+    ;
+
+ordering_direction_opt          /* not in specification */
+    : %empty
+    | ordering_direction
+    ;
+
+ordering_direction
+    : ASCENDING
+    | DESCENDING
+    ;
+
+select_or_group_clause
+    : select_clause
+    | group_clause
+    ;
+
+select_clause
+    : SELECT expression
+    ;
+
+group_clause
+    : GROUP expression BY expression
+    ;
+
+query_continuation
+    : INTO IDENTIFIER query_body
+    ;
+
+assignment
+    : unary_expression assignment_operator expression
+    ;
+
+assignment_operator
+    : EQUAL
     | PLUS_EQUAL
     | MINUS_EQUAL
-    | STAR_EQUAL
+    | ASTERISK_EQUAL
     | SLASH_EQUAL
     | PERCENT_EQUAL
     | AMPERSAND_EQUAL
     | VERTICAL_EQUAL
     | CARET_EQUAL
-    | DBL_LESS
     | DBL_LESS_EQUAL
-    | EQUAL_GREATER
-    | MINUS_GREATER
+    | DBL_GREATER_EQUAL
     ;
+
+statement
+    : labeled_statement
+    | declaration_statement
+    | embedded_statement
+    ;
+
+labeled_statement
+    : IDENTIFIER COLON statement
+    ;
+
+declaration_statement
+    : local_variable_declaration SEMICOLON
+    | local_constant_declaration SEMICOLON
+    ;
+
+local_variable_declaration
+    : local_variable_type local_variable_declarators
+    ;
+
+local_variable_type
+    : type
+    | VAR
+    ;
+
+local_variable_declarators
+    : local_variable_declarator
+    | local_variable_declarators COMMA local_variable_declarator
+    ;
+
+local_variable_declarator
+    : IDENTIFIER
+    | IDENTIFIER EQUAL local_variable_initializer
+    ;
+
+local_variable_initializer
+    : expression
+    | array_initializer
+    | local_variable_initializer_unsafe
+    ;
+
+local_variable_initializer_unsafe
+    : stackalloc_initializer
+    ;
+
+stackalloc_initializer
+    : STACKALLOC unmanaged_type LBRACKET expression RBRACKET
+    ;
+
+local_constant_declaration
+    : CONST type constant_declarators
+    ;
+
+embedded_statement
+    : block
+    | empty_statement
+    | expression_statement
+    | selection_statement
+    | iteration_statement
+    | jump_statement
+    | try_statement
+    | checked_statement
+    | unchecked_statement
+    | lock_statement
+    | using_statement
+    | yield_statement
+    | embedded_statement_unsafe
+    ;
+
+block
+    : LBRACE statement_list_opt RBRACE
+    ;
+
+statement_list_opt              /* not in specification */
+    : %empty
+    | statement_list
+    ;
+
+statement_list
+    : statement
+    | statement_list statement
+    ;
+
+empty_statement
+    : SEMICOLON
+    ;
+
+expression_statement
+    : statement_expression SEMICOLON
+    ;
+
+statement_expression
+    : invocation_expression
+    | null_conditional_invocation_expression
+    | object_creation_expression
+    | assignment
+    | post_increment_expression
+    | post_decrement_expression
+    | pre_increment_expression
+    | pre_decrement_expression
+    | await_expression
+    ;
+
+null_conditional_invocation_expression
+    : primary_expression null_conditional_operations LPAREN argument_list_opt RPAREN
+    ;
+
+selection_statement
+    : if_statement
+    | switch_statement
+    ;
+
+if_statement
+    : IF LPAREN boolean_expression RPAREN embedded_statement
+    | IF LPAREN boolean_expression RPAREN embedded_statement ELSE embedded_statement
+    ;
+
+switch_statement
+    : SWITCH LPAREN expression RPAREN switch_block
+    ;
+
+switch_block
+    : LBRACE switch_section_list RBRACE
+    ;
+
+switch_section_list             /* not in specification */
+    : %empty
+    | switch_section_list switch_section
+    ;
+
+switch_section
+    : switch_label_list statement_list
+    ;
+
+switch_label_list           /* not in specification */
+    : switch_label
+    | switch_label_list switch_label
+    ;
+
+switch_label
+    : CASE constant_expression COLON
+    | DEFAULT COLON
+    ;
+
+iteration_statement
+    : while_statement
+    | do_statement
+    | for_statement
+    | foreach_statement
+    ;
+
+while_statement
+    : WHILE LPAREN boolean_expression RPAREN embedded_statement
+    ;
+
+do_statement
+    : DO embedded_statement WHILE LPAREN boolean_expression RPAREN SEMICOLON
+    ;
+
+for_statement
+    : FOR LPAREN for_initializer_opt SEMICOLON for_condition_opt SEMICOLON for_iterator_opt RPAREN embedded_statement
+    ;
+
+for_initializer_opt             /* not in specification */
+    : %empty
+    | for_initializer
+    ;
+
+for_condition_opt               /* not in specification */
+    : %empty
+    | for_condition
+    ;
+
+for_iterator_opt                /* not in specification */
+    : %empty
+    | for_iterator
+    ;
+
+for_initializer
+    : local_variable_declaration
+    | statement_expression_list
+    ;
+
+statement_expression_list
+    : statement_expression more_statement_expressions
+    ;
+
+more_statement_expressions          /* not in specification */
+    : %empty
+    | more_statement_expressions COMMA statement_expression
+    ;
+
+for_condition
+    : boolean_expression
+    ;
+
+for_iterator
+    : statement_expression_list
+    ;
+
+foreach_statement
+    : FOREACH LPAREN local_variable_type IDENTIFIER IN expression RPAREN embedded_statement
+    ;
+
+jump_statement
+    : break_statement
+    | continue_statement
+    | goto_statement
+    | return_statement
+    | throw_statement
+    ;
+
+break_statement
+    : BREAK SEMICOLON
+    ;
+
+continue_statement
+    : CONTINUE SEMICOLON
+    ;
+
+goto_statement
+    : GOTO IDENTIFIER SEMICOLON
+    | GOTO CASE constant_expression SEMICOLON
+    | GOTO DEFAULT SEMICOLON
+    ;
+
+return_statement
+    : RETURN expression_opt SEMICOLON
+    ;
+
+expression_opt          /* not in specification */
+    : %empty
+    | expression
+    ;
+
+throw_statement
+    : THROW expression_opt SEMICOLON
+    ;
+
+try_statement
+    : TRY block catch_clause_list
+    | TRY block finally_clause
+    | TRY block catch_clause_list finally_clause
+    ;
+
+catch_clause_list           /* not in specification */
+    : catch_clause
+    | catch_clause_list catch_clause
+    ;
+
+catch_clause
+    : CATCH exception_specifier_opt exception_filter_opt block
+    ;
+
+exception_specifier_opt             /* not in specification */
+    : %empty
+    | exception_specifier
+    ;
+
+exception_filter_opt                /* not in specification */
+    : %empty
+    | exception_filter
+    ;
+
+exception_specifier
+    : LPAREN type identifier_opt RPAREN
+    ;
+
+identifier_opt              /* not in specification */
+    : %empty
+    | IDENTIFIER
+    ;
+
+exception_filter
+    : WHEN LPAREN expression RPAREN
+    ;
+
+finally_clause
+    : FINALLY block
+    ;
+
+checked_statement
+    : CHECKED block
+    ;
+
+unchecked_statement
+    : UNCHECKED block
+    ;
+
+lock_statement
+    : LOCK LPAREN expression RPAREN embedded_statement
+    ;
+
+using_statement
+    : USING LPAREN resource_acquisition RPAREN embedded_statement
+    ;
+
+resource_acquisition
+    : local_variable_declaration
+    | expression
+    ;
+
+yield_statement
+    : YIELD RETURN expression SEMICOLON
+    | YIELD BREAK SEMICOLON
+    ;
+
+embedded_statement_unsafe
+    : unsafe_statement
+    | fixed_statement
+    ;
+
+unsafe_statement
+    : UNSAFE block
+    ;
+
+fixed_statement
+    : FIXED LPAREN pointer_type fixed_pointer_declarators RPAREN embedded_statement
+    ;
+
+fixed_pointer_declarators
+    : fixed_pointer_declarator more_fixed_pointer_declarators
+    ;
+
+more_fixed_pointer_declarators          /* not in specification */
+    : %empty
+    | more_fixed_pointer_declarators COMMA fixed_pointer_declarator
+    ;
+
+fixed_pointer_declarator
+    : IDENTIFIER EQUAL fixed_pointer_initializer
+    ;
+
+fixed_pointer_initializer
+    : AMPERSAND varibale_reference
+    | expression
+    ;
+
+
 
 
 %%

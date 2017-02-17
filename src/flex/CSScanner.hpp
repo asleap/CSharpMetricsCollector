@@ -16,6 +16,8 @@ namespace Metrics {
 
 class CSScanner : public yyFlexLexer {
 public:
+    int yylexret;
+
     CSScanner(std::istream *in)
         :
         yyFlexLexer(in) {
@@ -29,9 +31,28 @@ public:
     // Get rid of override function warning
     using FlexLexer::yylex;
 
-    virtual int yylex(Metrics::CSParser::semantic_type *const lval, Metrics::CSParser::location_type *location);
     // YY_DECL defined in CSScanner.l
     // Method body created by flex in CSScanner.cc
+
+    virtual int yylex(Metrics::CSParser::semantic_type *const lval, Metrics::CSParser::location_type *location);
+
+    /**
+     * Wrapper for yylex(), allows to store its output in yylexret
+     * @return token code returned by yylex()
+     */
+    virtual int yylexwrap() {
+        yylexret = yylex();
+        return yylexret;
+    }
+
+    /**
+     * Wrapper for yylex(), allows to store its output in yylexret
+     * @return token code returned by yylex(lval, location)
+     */
+    virtual int yylexwrap(Metrics::CSParser::semantic_type *const lval, Metrics::CSParser::location_type *location) {
+        yylexret = yylex(lval, location);
+        return yylexret;
+    }
 
 private:
     // yylval pointer
