@@ -266,6 +266,8 @@
 
 %locations
 
+%start compilation_unit
+
 /* GRAMMAR */
 %%
 
@@ -275,22 +277,34 @@
 /**
  * The following tree describes language
  */
+/*
 start
     : compilation_unit
     ;
+*/
 
 compilation_unit
-    : extern_alias_directive_list using_directive_list global_attributes_opt namespace_member_declaration_list
+    : extern_alias_directives_opt using_directives_opt global_attributes_opt namespace_member_declarations_opt
     ;
 
-extern_alias_directive_list         /* not in specification */
+extern_alias_directives_opt         /* not in specification */
     : %empty
-    | extern_alias_directive_list extern_alias_directive
+    | extern_alias_directives
     ;
 
-using_directive_list                /* not in specification */
+extern_alias_directives             /* not in specification */
+    : extern_alias_directive
+    | extern_alias_directives extern_alias_directive
+    ;
+
+using_directives_opt                /* not in specification */
     : %empty
-    | using_directive_list using_directive
+    | using_directives
+    ;
+
+using_directives                    /* not in specification */
+    : using_directive
+    | using_directives using_directive
     ;
 
 global_attributes_opt               /* not in specification */
@@ -298,9 +312,14 @@ global_attributes_opt               /* not in specification */
     | global_attributes
     ;
 
-namespace_member_declaration_list   /* not in specification */
+namespace_member_declarations_opt   /* not in specification */
     : %empty
-    | namespace_member_declaration_list namespace_member_declaration
+    | namespace_member_declarations
+    ;
+
+namespace_member_declarations       /* not in specification */
+    : namespace_member_declaration
+    | namespace_member_declarations namespace_member_declaration
     ;
 
 extern_alias_directive
@@ -318,15 +337,20 @@ using_alias_directive
     ;
 
 namespace_or_type_name
-    : IDENTIFIER type_argument_list_opt
-    | namespace_or_type_name DOT IDENTIFIER type_argument_list_opt
+    :                            IDENTIFIER
+    |                            IDENTIFIER type_argument_list
+    | namespace_or_type_name DOT IDENTIFIER
+    | namespace_or_type_name DOT IDENTIFIER type_argument_list
     | qualified_alias_member
+    //| IDENTIFIER type_argument_list_opt
+    //| namespace_or_type_name DOT IDENTIFIER type_argument_list_opt
+    //| qualified_alias_member
     ;
 
-type_argument_list_opt              /* not in specification */
-    : %empty
-    | type_argument_list
-    ;
+//type_argument_list_opt              /* not in specification */
+//    : %empty
+//    | type_argument_list
+//    ;
 
 type_argument_list
     : LESS type_arguments GREATER
@@ -478,7 +502,8 @@ unmanaged_type
     ;
 
 qualified_alias_member
-    : IDENTIFIER DBL_COLON IDENTIFIER type_argument_list_opt
+    : IDENTIFIER DBL_COLON IDENTIFIER
+    | IDENTIFIER DBL_COLON IDENTIFIER type_argument_list
     ;
 
 using_namespace_directive
@@ -494,15 +519,15 @@ using_static_directive
     ;
 
 global_attributes
-    : global_attributes_section_list
+    : global_attribute_sections
     ;
 
-global_attributes_section_list          /* not in specification */
-    : global_attributes_section
-    | global_attributes_section_list global_attributes_section
+global_attribute_sections            /* not in specification */
+    : global_attribute_section
+    | global_attribute_sections global_attribute_section
     ;
 
-global_attributes_section
+global_attribute_section
     : LBRACKET global_attribute_target_specifier attribute_list RBRACKET
     | LBRACKET global_attribute_target_specifier attribute_list COMMA RBRACKET
     ;
@@ -517,16 +542,12 @@ global_attribute_target
     ;
 
 attribute_list
-    : attribute more_attributes
+    :                      attribute
+    | attribute_list COMMA attribute
     ;
 
 attribute
     : attribute_name attribute_arguments_opt
-    ;
-
-more_attributes                     /* not in specification */
-    : %empty
-    | more_attributes COMMA attribute
     ;
 
 attribute_name
@@ -603,7 +624,15 @@ more_identifiers                    /* not in specification */
     ;
 
 namespace_body
-    : LBRACE extern_alias_directive_list using_directive_list namespace_member_declaration_list RBRACE
+    : LBRACE                                                                        RBRACE
+    | LBRACE                                          namespace_member_declarations RBRACE
+    | LBRACE                         using_directives                               RBRACE
+    | LBRACE                         using_directives namespace_member_declarations RBRACE
+    | LBRACE extern_alias_directives                                                RBRACE
+    | LBRACE extern_alias_directives                  namespace_member_declarations RBRACE
+    | LBRACE extern_alias_directives using_directives                               RBRACE
+    | LBRACE extern_alias_directives using_directives namespace_member_declarations RBRACE
+    //| LBRACE extern_alias_directives_opt using_directives_opt namespace_member_declarations_opt RBRACE
     ;
 
 type_declaration
@@ -1718,7 +1747,8 @@ literal
     ;
 
 simple_name
-    : IDENTIFIER type_argument_list_opt
+    : IDENTIFIER
+    | IDENTIFIER type_argument_list
     ;
 
 paranthesized_expression
@@ -1726,8 +1756,10 @@ paranthesized_expression
     ;
 
 member_access
-    : primary_expression DOT IDENTIFIER type_argument_list_opt
-    | predefined_type DOT IDENTIFIER type_argument_list_opt
+    : primary_expression DOT IDENTIFIER
+    | primary_expression DOT IDENTIFIER type_argument_list
+    | predefined_type DOT IDENTIFIER
+    | predefined_type DOT IDENTIFIER type_argument_list
     | qualified_alias_member DOT IDENTIFIER
     ;
 
@@ -1885,8 +1917,10 @@ member_declarator
     ;
 
 null_conditional_member_access
-    : primary_expression null_conditional_operations_opt QUESTION DOT IDENTIFIER type_argument_list_opt
-    | primary_expression null_conditional_operations DOT IDENTIFIER type_argument_list_opt
+    : primary_expression null_conditional_operations_opt QUESTION DOT IDENTIFIER
+    | primary_expression null_conditional_operations_opt QUESTION DOT IDENTIFIER type_argument_list
+    | primary_expression null_conditional_operations DOT IDENTIFIER
+    | primary_expression null_conditional_operations DOT IDENTIFIER type_argument_list
     ;
 
 null_conditional_operations_opt             /* not in specification */
@@ -1895,9 +1929,11 @@ null_conditional_operations_opt             /* not in specification */
     ;
 
 null_conditional_operations
-    : null_conditional_operations_opt QUESTION DOT IDENTIFIER type_argument_list_opt
+    : null_conditional_operations_opt QUESTION DOT IDENTIFIER
+    | null_conditional_operations_opt QUESTION DOT IDENTIFIER type_argument_list
     | null_conditional_operations_opt QUESTION LBRACKET argument_list RBRACKET
-    | null_conditional_operations DOT IDENTIFIER type_argument_list_opt
+    | null_conditional_operations DOT IDENTIFIER
+    | null_conditional_operations DOT IDENTIFIER type_argument_list
     | null_conditional_operations LBRACKET argument_list RBRACKET
     | null_conditional_operations LPAREN argument_list_opt RPAREN
     ;
@@ -1946,7 +1982,8 @@ nameof_expression
 
 named_entity
     : simple_name
-    | named_entity_target DOT IDENTIFIER type_argument_list_opt
+    | named_entity_target DOT IDENTIFIER
+    | named_entity_target DOT IDENTIFIER type_argument_list
     ;
 
 named_entity_target
