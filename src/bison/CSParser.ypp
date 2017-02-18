@@ -547,31 +547,24 @@ attribute_list
     ;
 
 attribute
-    : attribute_name attribute_arguments_opt
+    : attribute_name
+    | attribute_name attribute_arguments
     ;
 
 attribute_name
     : type_name
     ;
 
-attribute_arguments_opt             /* not in specification */
-    : %empty
-    | attribute_arguments
-    ;
-
 attribute_arguments
-    : LPAREN positional_argument_list_opt RPAREN
+    : LPAREN                                                    RPAREN
+    | LPAREN positional_argument_list                           RPAREN
     | LPAREN positional_argument_list COMMA named_argument_list RPAREN
-    | LPAREN named_argument_list RPAREN
-    ;
-
-positional_argument_list_opt        /* not in specification */
-    : %empty
-    | positional_argument_list
+    | LPAREN                                named_argument_list RPAREN
     ;
 
 positional_argument_list
-    : positional_argument more_positional_arguments
+    :                                positional_argument
+    | positional_argument_list COMMA positional_argument
     ;
 
 positional_argument
@@ -582,22 +575,13 @@ attribute_argument_expression
     : expression
     ;
 
-more_positional_arguments           /* not in specification */
-    : %empty
-    | more_positional_arguments COMMA positional_argument
-    ;
-
 named_argument_list
-    : named_argument more_named_arguments
+    :                           named_argument
+    | named_argument_list COMMA named_argument
     ;
 
 named_argument
     : IDENTIFIER EQUAL attribute_argument_expression
-    ;
-
-more_named_arguments                /* not in specification */
-    : %empty
-    | more_positional_arguments COMMA named_argument
     ;
 
 namespace_member_declaration
@@ -606,7 +590,8 @@ namespace_member_declaration
     ;
 
 namespace_declaration
-    : NAMESPACE qualified_identifier namespace_body semicolon_opt
+    : NAMESPACE qualified_identifier namespace_body
+    | NAMESPACE qualified_identifier namespace_body SEMICOLON
     ;
 
 semicolon_opt                       /* not in specification */
@@ -742,12 +727,8 @@ class_base
     ;
 
 interface_type_list
-    : interface_type more_interface_types
-    ;
-
-more_interface_types
-    : %empty
-    | more_interface_types COMMA interface_type
+    : interface_type
+    | interface_type_list COMMA interface_type
     ;
 
 type_parameter_constraints_clause
