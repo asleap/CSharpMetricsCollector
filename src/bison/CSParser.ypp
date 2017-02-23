@@ -338,32 +338,28 @@ using_alias_directive
     ;
 
 namespace_or_type_name
-    :                            IDENTIFIER
-    |                            IDENTIFIER type_argument_list
-    | namespace_or_type_name DOT IDENTIFIER
-    | namespace_or_type_name DOT IDENTIFIER type_argument_list
-    | qualified_alias_member
-    //| IDENTIFIER type_argument_list_opt
-    //| namespace_or_type_name DOT IDENTIFIER type_argument_list_opt
+    //:                            IDENTIFIER
+    //|                            IDENTIFIER type_argument_list
+    //| namespace_or_type_name DOT IDENTIFIER
+    //| namespace_or_type_name DOT IDENTIFIER type_argument_list
     //| qualified_alias_member
+    : IDENTIFIER type_argument_list_opt
+    | namespace_or_type_name DOT IDENTIFIER type_argument_list_opt
+    | qualified_alias_member
     ;
 
-//type_argument_list_opt              /* not in specification */
-//    : %empty
-//    | type_argument_list
-//    ;
+type_argument_list_opt              /* not in specification */
+    : %empty
+    | type_argument_list
+    ;
 
 type_argument_list
     : LESS type_arguments GREATER
     ;
 
 type_arguments
-    : type_argument more_type_arguments
-    ;
-
-more_type_arguments         /* not in specification */
-    : %empty
-    | more_type_arguments COMMA type_argument
+    : type_argument
+    | type_arguments COMMA type_argument
     ;
 
 type_argument
