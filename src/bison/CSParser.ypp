@@ -358,36 +358,47 @@ type_argument_list
     ;
 
 type_arguments
-    : type_argument
-    | type_arguments COMMA type_argument
+    //: type_argument
+    //| type_arguments COMMA type_argument
+    : type
+    | type_arguments COMMA type
     ;
 
-type_argument
-    : type
-    ;
+//type_argument
+//    : type
+//    ;
 
 type
-    : value_type
-    | reference_type
-    | type_parameter
-    | type_unsafe
-    | type_name
-    ;
-
-value_type
-    : struct_type
-    /* | enum_type - enum_type -> type_name, which is already in struct_type */
-    ;
-
-struct_type
+    //: value_type
     : simple_type
     | nullable_type
+    //| reference_type
+    | class_type
+    //| interface_type
+    | array_type
+    | type_parameter
+    //| type_unsafe
+    | pointer_type
     //| type_name
+    | namespace_or_type_name
     ;
 
-type_name
-    : namespace_or_type_name
-    ;
+//value_type
+//    //: struct_type
+//    : simple_type
+//    | nullable_type
+//    /* | enum_type - enum_type -> type_name, which is already in struct_type */
+//    ;
+
+//struct_type
+//    : simple_type
+//    | nullable_type
+//    //| type_name
+//    ;
+
+//type_name
+//    : namespace_or_type_name
+//    ;
 
 simple_type
     : numeric_type
@@ -418,12 +429,13 @@ floating_point_type
     ;
 
 nullable_type
-    : non_nullable_value_type QUESTION
+    //: non_nullable_value_type QUESTION
+    : type QUESTION
     ;
 
-non_nullable_value_type
-    : type
-    ;
+//non_nullable_value_type
+//    : type
+//    ;
 
 /*
 enum_type
@@ -431,23 +443,26 @@ enum_type
     ;
 */
 
-reference_type
-    : class_type
-    | interface_type
-    | array_type
-    //| delegate_type
-    ;
+//reference_type
+//    : class_type
+//    | interface_type
+//    | array_type
+//    //| delegate_type
+//    ;
 
 class_type
-    : type_name
-    | OBJECT
+    //: type_name
+    //: namespace_or_type_name
+    //| OBJECT
+    : OBJECT
     | DYNAMIC
     | STRING
     ;
 
-interface_type
-    : type_name
-    ;
+//interface_type
+//    //: type_name
+//    : namespace_or_type_name
+//    ;
 
 array_type
     : non_array_type rank_specifier_list
@@ -485,18 +500,19 @@ type_parameter
     : IDENTIFIER
     ;
 
-type_unsafe
-    : pointer_type
-    ;
+//type_unsafe
+//    : pointer_type
+//    ;
 
 pointer_type
-    : unmanaged_type ASTERISK
+    //: unmanaged_type ASTERISK
+    : type ASTERISK
     | VOID ASTERISK
     ;
 
-unmanaged_type
-    : type
-    ;
+//unmanaged_type
+//    : type
+//    ;
 
 qualified_alias_member
     : IDENTIFIER DBL_COLON IDENTIFIER
@@ -512,7 +528,8 @@ namespace_name
     ;
 
 using_static_directive
-    : USING STATIC type_name SEMICOLON
+    //: USING STATIC type_name SEMICOLON
+    : USING STATIC namespace_or_type_name SEMICOLON
     ;
 
 //global_attributes
@@ -549,7 +566,8 @@ attribute
     ;
 
 attribute_name
-    : type_name
+    //: type_name
+    : namespace_or_type_name
     ;
 
 attribute_arguments
@@ -719,13 +737,17 @@ type_parameters
 
 class_base
     : COLON class_type
+    | COLON namespace_or_type_name
     | COLON interface_type_list
     | class_type COMMA interface_type_list
+    | namespace_or_type_name COMMA interface_type_list
     ;
 
 interface_type_list
-    : interface_type
-    | interface_type_list COMMA interface_type
+    //: interface_type
+    //| interface_type_list COMMA interface_type
+    : namespace_or_type_name
+    | interface_type_list COMMA namespace_or_type_name
     ;
 
 type_parameter_constraints_clause
@@ -744,14 +766,17 @@ type_parameter_constraints
 
 primary_constraint
     : class_type
+    | namespace_or_type_name
     | CLASS
     | STRUCT
     ;
 
 secondary_constraints
-    : interface_type
+    //: interface_type
+    : namespace_or_type_name
     | type_parameter
-    | secondary_constraints COMMA interface_type
+    //| secondary_constraints COMMA interface_type
+    | secondary_constraints COMMA namespace_or_type_name
     | secondary_constraints COMMA type_parameter
     ;
 
@@ -900,7 +925,8 @@ return_type
 
 member_name
     : IDENTIFIER
-    | interface_type DOT IDENTIFIER
+    //| interface_type DOT IDENTIFIER
+    | namespace_or_type_name DOT IDENTIFIER
     ;
 
 formal_parameter_list_opt           /* not in specification */
@@ -1099,7 +1125,8 @@ indexer_modifier_unsafe
 
 indexer_declarator
     : type THIS LBRACKET formal_parameter_list RBRACKET
-    | type interface_type DOT THIS LBRACKET formal_parameter_list RBRACKET
+    //| type interface_type DOT THIS LBRACKET formal_parameter_list RBRACKET
+    | type namespace_or_type_name DOT THIS LBRACKET formal_parameter_list RBRACKET
     ;
 
 indexer_body
@@ -1860,7 +1887,8 @@ element_initializer
     ;
 
 delegate_creation_expression
-    : /* NEW delegate_type LPAREN expression RPAREN */ NEW type_name LPAREN expression RPAREN
+    //: /* NEW delegate_type LPAREN expression RPAREN */ NEW type_name LPAREN expression RPAREN
+    : NEW namespace_or_type_name LPAREN expression RPAREN
     ;
 
 anonymous_object_creation_expression
@@ -2028,7 +2056,8 @@ pointer_element_access
     ;
 
 sizeof_expression
-    : SIZEOF LPAREN unmanaged_type RPAREN
+    //: SIZEOF LPAREN unmanaged_type RPAREN
+    : SIZEOF LPAREN type RPAREN
     ;
 
 array_creation_expression
@@ -2310,7 +2339,8 @@ local_variable_initializer_unsafe
     ;
 
 stackalloc_initializer
-    : STACKALLOC unmanaged_type LBRACKET expression RBRACKET
+    //: STACKALLOC unmanaged_type LBRACKET expression RBRACKET
+    : STACKALLOC type LBRACKET expression RBRACKET
     ;
 
 local_constant_declaration
