@@ -64,11 +64,8 @@ using token = Metrics::CSParser::token;
 
 [\n]|(\r\n)                     {
                                     loc->lines();
-                                    return( token::NEW_LINE );
+                                    // return( token::NEW_LINE );
                                 }
-
-
-
 
 "#"                             {   /* Pre-processor */
                                     return( token::HASH );

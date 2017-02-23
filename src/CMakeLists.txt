@@ -51,7 +51,7 @@ add_executable(CSharpMetrics
         ${FLEX_CSScanner_OUTPUTS})
 
 # Check if directory for Flex/Bison generated files exists
-if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tmp)
+if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/generated)
     add_dependencies(CSharpMetrics CreateFlexBisonGeneratedDirectory)
     add_dependencies(CSharpMetricsLib CreateFlexBisonGeneratedDirectory)
 endif()

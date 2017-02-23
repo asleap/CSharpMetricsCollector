@@ -309,7 +309,8 @@ using_directives                    /* not in specification */
 
 global_attributes_opt               /* not in specification */
     : %empty
-    | global_attributes
+    //| global_attributes
+    | global_attributes_opt global_attribute_section
     ;
 
 namespace_member_declarations_opt   /* not in specification */
@@ -518,14 +519,14 @@ using_static_directive
     : USING STATIC type_name SEMICOLON
     ;
 
-global_attributes
-    : global_attribute_sections
-    ;
+//global_attributes
+//    : global_attribute_sections
+//    ;
 
-global_attribute_sections            /* not in specification */
-    : global_attribute_section
-    | global_attribute_sections global_attribute_section
-    ;
+//global_attribute_sections            /* not in specification */
+//    : global_attribute_section
+//    | global_attribute_sections global_attribute_section
+//    ;
 
 global_attribute_section
     : LBRACKET global_attribute_target_specifier attribute_list RBRACKET
@@ -629,7 +630,7 @@ type_declaration
     ;
 
 class_declaration
-    : attributes_opt class_modifier_list partial_opt CLASS IDENTIFIER type_parameter_list_opt class_base_opt type_parameter_constraints_clause_list class_body semicolon_opt
+    : attributes_opt class_modifier_list partial_opt CLASS IDENTIFIER type_parameter_list_opt class_base_opt type_parameter_constraints_clause_list class_body semicolon_opt {std::cout << "Class declaration" << std::endl;}
     ;
 
 attributes_opt                  /* not in specification */
