@@ -10,7 +10,7 @@ add_custom_target(CreateFlexBisonGeneratedDirectory ALL
 # Bison settings
 find_package(BISON 3.0)
 if(BISON_FOUND)
-    BISON_TARGET(CSParser bison/CSParser.ypp
+    BISON_TARGET(CSParser bison/CSParser2.ypp
             ${CMAKE_CURRENT_SOURCE_DIR}/generated/CSParser.cc
             DEFINES_FILE ${CMAKE_CURRENT_SOURCE_DIR}/generated/CSParser.hh
             VERBOSE ${CMAKE_CURRENT_SOURCE_DIR}/generated)

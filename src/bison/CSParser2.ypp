@@ -1,0 +1,771 @@
+/**
+ * A C# grammar for Bison written in correspondance to C# 6 language
+ * specification found here: https://github.com/ljw1004/csharpspec
+ *
+ */
+
+
+
+/* PROLOGUE */
+//%{
+//%}
+
+
+/* DECLARATIONS */
+%require "3.0"
+%language "c++"
+%defines
+
+%define lr.type lalr
+%define api.namespace { Metrics }
+%define api.value.type variant
+%define parse.assert
+%define parse.error verbose         /* May sometimes produce incorrect error messages */
+%define parse.trace
+
+%define parser_class_name { CSParser }
+%parse-param { CSScanner &scanner }
+%parse-param { MetricsDriver &driver }
+
+%code requires{
+    namespace Metrics {
+      class MetricsDriver;
+      class CSScanner;
+    }
+
+    // The following definitions is missing when %locations isn't used
+    # ifndef YY_NULLPTR
+    #  if defined __cplusplus && 201103L <= __cplusplus
+    #   define YY_NULLPTR nullptr
+    #  else
+    #   define YY_NULLPTR 0
+    #  endif
+    # endif
+}
+
+%code{
+   #include <iostream>
+   #include <cstdlib>
+   #include <fstream>
+
+    /* include for all driver functions */
+    #include "../MetricsDriver.hpp"
+    #include "../Token.hpp"
+
+    #undef yylex
+    #define yylex scanner.yylexwrap
+}
+
+
+/* TOKENS */
+//%token                END    0     "end of file"
+%token                  END
+
+/* WHITESPACE token:
+ * <Any character with Unicode class Zs>
+ * <Horizontal tab character (U+0009)>
+ * <Vertical tab character (U+000B)>
+ * <Form feed character (U+000C)>
+ */
+//%token                WHITESPACE
+
+/* NEW_LINE token:
+ * <Carriage return character (U+000D)>
+ * <Line feed character (U+000A)>
+ * <Carriage return character (U+000D) followed by line feed character (U+000A)>
+ * <Next line character (U+0085)>
+ * <Line separator character (U+2028)>
+ * <Paragraph separator character (U+2029)>
+ */
+%token                  NEW_LINE
+
+%token                  HASH                  /* # sign */
+%token                  DEFINE                /* define pp-keyword */
+%token                  UNDEF                 /* undef pp-keyword */
+
+/* Keywords */
+%token                  ABSTRACT
+%token                  ADD
+%token                  ALIAS
+%token                  AS
+%token                  ASCENDING
+%token                  ASSEMBLY
+%token                  AWAIT
+%token                  BASE
+%token                  BOOL
+%token                  BREAK
+%token                  BY
+%token                  BYTE
+%token                  CASE
+%token                  CATCH
+%token                  CHAR
+%token                  CHECKED
+%token                  CLASS
+%token                  CONST
+%token                  CONTINUE
+%token                  DECIMAL
+%token                  DEFAULT
+%token                  DELEGATE
+%token                  DESCENDING
+%token                  DO
+%token                  DOUBLE
+%token                  DYNAMIC
+%token                  ELSE
+%token                  ENUM
+%token                  EQUALS
+%token                  EVENT
+%token                  EXPLICIT
+%token                  EXTERN
+%token                  FALSE
+%token                  FIELD
+%token                  FINALLY
+%token                  FIXED
+%token                  FLOAT
+%token                  FOR
+%token                  FOREACH
+%token                  FROM
+%token                  GET
+%token                  GOTO
+%token                  GROUP
+%token                  IF
+%token                  IMPLICIT
+%token                  IN
+%token                  INT
+%token                  INTO
+%token                  INTERFACE
+%token                  INTERNAL
+%token                  IS
+%token                  JOIN
+%token                  LET
+%token                  LOCK
+%token                  LONG
+%token                  METHOD
+%token                  MODULE
+%token                  NAMEOF
+%token                  NAMESPACE
+%token                  NEW
+%token                  Null
+%token                  OBJECT
+%token                  ON
+%token                  OPERATOR
+%token                  ORDERBY
+%token                  OUT
+%token                  OVERRIDE
+%token                  PARAM
+%token                  PARAMS
+%token                  PARTIAL
+%token                  PRIVATE
+%token                  PROPERTY
+%token                  PROTECTED
+%token                  PUBLIC
+%token                  READONLY
+%token                  REF
+%token                  REMOVE
+%token                  RETURN
+%token                  SBYTE
+%token                  SEALED
+%token                  SELECT
+%token                  SET
+%token                  SHORT
+%token                  SIZEOF
+%token                  STACKALLOC
+%token                  STATIC
+%token                  STRING
+%token                  STRUCT
+%token                  SWITCH
+%token                  THIS
+%token                  THROW
+%token                  TRUE
+%token                  TRY
+%token                  TYPE
+%token                  TYPEOF
+%token                  UINT
+%token                  ULONG
+%token                  UNCHECKED
+%token                  UNSAFE
+%token                  USHORT
+%token                  USING
+%token                  VAR
+%token                  VIRTUAL
+%token                  VOID
+%token                  VOLATILE
+%token                  WHEN
+%token                  WHERE
+%token                  WHILE
+%token                  YIELD
+
+/* Operators and punctuators */
+%token                  AT                /* @ */
+%token                  UNDERSCORE        /* _ */
+
+%token                  LBRACE            /* { */
+%token                  RBRACE            /* } */
+%token                  LBRACKET          /* [ */
+%token                  RBRACKET          /* ] */
+%token                  LPAREN            /* ( */
+%token                  RPAREN            /* ) */
+
+%token                  DOT               /* . */
+%token                  COMMA             /* , */
+%token                  COLON             /* : */
+%token                  SEMICOLON         /* ; */
+
+%token                  PLUS              /* + */
+%token                  MINUS             /* - */
+%token                  ASTERISK          /* * */
+%token                  SLASH             /* / */
+%token                  PERCENT           /* % */
+%token                  AMPERSAND         /* & */
+%token                  VERTICAL          /* | */
+%token                  CARET             /* ^ */
+%token                  EXCLAMATION       /* ! */
+%token                  TILDE             /* ~ */
+%token                  EQUAL             /* = */
+%token                  LESS              /* < */
+%token                  GREATER           /* > */
+%token                  QUESTION          /* ? */
+
+%token                  DBL_QUESTION      /* ?? */
+%token                  DBL_COLON         /* :: */
+%token                  DBL_PLUS          /* ++ */
+%token                  DBL_MINUS         /* -- */
+%token                  DBL_AMPERSAND     /* && */
+%token                  DBL_VERTICAL      /* || */
+%token                  DBL_EQUAL         /* == */
+
+%token                  EXCL_EQUAL        /* != */
+%token                  LESS_EQUAL        /* <= */
+%token                  GREATER_EQUAL     /* >= */
+%token                  PLUS_EQUAL        /* += */
+%token                  MINUS_EQUAL       /* -= */
+%token                  ASTERISK_EQUAL    /* *= */
+%token                  SLASH_EQUAL       /* /= */
+%token                  PERCENT_EQUAL     /* %= */
+%token                  AMPERSAND_EQUAL   /* &= */
+%token                  VERTICAL_EQUAL    /* |= */
+%token                  CARET_EQUAL       /* ^= */
+%token                  DBL_LESS          /* << */
+%token                  DBL_LESS_EQUAL    /* <<= */
+%token                  DBL_GREATER       /* >> */
+%token                  DBL_GREATER_EQUAL /* >>= */
+%token                  EQUAL_GREATER     /* => */
+%token                  MINUS_GREATER     /* -> */
+
+/* Literals */
+%token <std::string>    SINGLE_LINE_COMMENT
+%token <std::string>    MULTI_LINE_COMMENT
+%token <std::string>    IDENTIFIER
+%token <std::string>    INTEGER_LITERAL
+%token <std::string>    REAL_LITERAL
+%token <std::string>    CHARACTER_LITERAL
+%token <std::string>    STRING_LITERAL
+
+%locations
+
+%start primary_expression
+
+
+
+%nonassoc production_end
+
+%nonassoc LBRACE
+%nonassoc RBRACKET
+%nonassoc RPAREN
+%nonassoc COMMA
+/* GRAMMAR */
+%%
+
+
+
+
+/**
+ * The following tree describes language
+ */
+primary_expression
+    : primary_no_array_creation_expression
+    | array_creation_expression
+    ;
+
+primary_no_array_creation_expression
+    : literal
+    // | interpolated_string_literal // TODO
+    | simple_name
+    | paranthesized_expression
+    | member_access
+    | invocation_expression
+    | element_access
+    | this_access
+    | base_access
+    | post_increment_expression
+    | post_decrement_expression
+    | object_creation_expression
+    | delegate_creation_expression
+    | anonymous_object_creation_expression
+    | typeof_expression
+    | checked_expression
+    | unchecked_expression
+    | default_value_expression
+    | nameof_expression
+    | anonymous_method_expression
+    | primary_no_array_creation_expression_unsafe
+    ;
+
+literal
+    : TRUE
+    | FALSE
+    | INTEGER_LITERAL
+    | REAL_LITERAL
+    | CHARACTER_LITERAL
+    | STRING_LITERAL
+    | Null
+    ;
+
+simple_name
+    : IDENTIFIER
+    | IDENTIFIER type_argument_list
+    ;
+
+paranthesized_expression
+    : LPAREN expression RPAREN
+    ;
+
+member_access
+    : primary_expression     DOT IDENTIFIER
+    | primary_expression     DOT IDENTIFIER type_argument_list
+    | predefined_type        DOT IDENTIFIER
+    | predefined_type        DOT IDENTIFIER type_argument_list
+    | qualified_alias_member DOT IDENTIFIER
+    ;
+
+predefined_type
+    : BOOL
+    | BYTE
+    | CHAR
+    | DECIMAL
+    | DOUBLE
+    | FLOAT
+    | INT
+    | LONG
+    | OBJECT
+    | SBYTE
+    | SHORT
+    | STRING
+    | UINT
+    | ULONG
+    | USHORT
+    ;
+
+invocation_expression
+    : primary_expression LPAREN RPAREN
+    | primary_expression LPAREN argument_list RPAREN
+    ;
+
+argument_list
+    :                     argument
+    | argument_list COMMA argument
+    ;
+
+argument
+    : argument_value
+    | IDENTIFIER COLON argument_value
+    ;
+
+argument_value
+    :     expression %prec production_end
+    | REF expression
+    | OUT expression
+    ;
+
+element_access
+    : primary_no_array_creation_expression LBRACKET argument_list RBRACKET
+    ;
+
+this_access
+    : THIS
+    ;
+
+base_access
+    : BASE DOT IDENTIFIER
+    | BASE LBRACKET argument_list RBRACKET
+    ;
+
+post_increment_expression
+    : primary_expression DBL_PLUS
+    ;
+
+post_decrement_expression
+    : primary_expression DBL_MINUS
+    ;
+
+object_creation_expression
+    : NEW type LPAREN               RPAREN
+    | NEW type LPAREN argument_list RPAREN
+    | NEW type LPAREN               RPAREN object_or_collection_initializer
+    | NEW type LPAREN argument_list RPAREN object_or_collection_initializer
+    | NEW type                             object_or_collection_initializer
+    ;
+
+object_or_collection_initializer
+    : object_initializer
+    | collection_initializer
+    ;
+
+object_initializer
+    : LBRACE RBRACE
+    | LBRACE member_initializer_list       RBRACE
+    | LBRACE member_initializer_list COMMA RBRACE
+    ;
+
+member_initializer_list
+    : member_initializer
+    | member_initializer_list COMMA member_initializer
+    ;
+
+member_initializer
+    : IDENTIFIER                      EQUAL expression
+    | IDENTIFIER                      EQUAL object_or_collection_initializer
+    | LBRACKET argument_list RBRACKET EQUAL expression
+    | LBRACKET argument_list RBRACKET EQUAL object_or_collection_initializer
+    ;
+
+collection_initializer
+    : LBRACE element_initializer_list RBRACE
+    | LBRACE element_initializer_list COMMA RBRACE
+    ;
+
+element_initializer_list
+    :                           element_initializer %prec production_end
+    | element_initializer COMMA element_initializer
+    ;
+
+element_initializer
+    : non_assignment_expression
+    | LBRACE expression_list RBRACE
+    ;
+
+expression_list
+    :                       expression
+    | expression_list COMMA expression
+    ;
+
+delegate_creation_expression
+    : NEW type LPAREN expression RPAREN
+    ;
+
+anonymous_object_creation_expression
+    : NEW anonymous_object_initializer
+    ;
+
+anonymous_object_initializer
+    : LBRACE                              RBRACE
+    | LBRACE member_declarator_list       RBRACE
+    | LBRACE member_declarator_list COMMA RBRACE
+    ;
+
+member_declarator_list
+    :                              member_declarator
+    | member_declarator_list COMMA member_declarator
+    ;
+
+member_declarator
+    : simple_name
+    | member_access
+    | base_access
+    | null_conditional_member_access
+    | IDENTIFIER EQUAL expression
+    ;
+
+null_conditional_member_access
+    : primary_expression                             QUESTION DOT IDENTIFIER
+    | primary_expression null_conditional_operations QUESTION DOT IDENTIFIER
+    | primary_expression                             QUESTION DOT IDENTIFIER type_argument_list
+    | primary_expression null_conditional_operations QUESTION DOT IDENTIFIER type_argument_list
+    | primary_expression null_conditional_operations          DOT IDENTIFIER
+    | primary_expression null_conditional_operations          DOT IDENTIFIER type_argument_list
+    ;
+
+null_conditional_operations
+    :                             QUESTION DOT IDENTIFIER
+    | null_conditional_operations QUESTION DOT IDENTIFIER
+    |                             QUESTION DOT IDENTIFIER type_argument_list
+    | null_conditional_operations QUESTION DOT IDENTIFIER type_argument_list
+    | null_conditional_operations          DOT IDENTIFIER
+    | null_conditional_operations          DOT IDENTIFIER type_argument_list
+    |                             QUESTION LBRACKET argument_list RBRACKET
+    | null_conditional_operations QUESTION LBRACKET argument_list RBRACKET
+    | null_conditional_operations          LBRACKET argument_list RBRACKET
+    | null_conditional_operations LPAREN               RPAREN
+    | null_conditional_operations LPAREN argument_list RPAREN
+    ;
+
+typeof_expression
+    : TYPEOF LPAREN type              RPAREN
+    | TYPEOF LPAREN unbound_type_name RPAREN
+    | TYPEOF LPAREN VOID              RPAREN
+    ;
+
+unbound_type_name
+    :                                            IDENTIFIER
+    |                                            IDENTIFIER generic_demension_specifier
+    |                       IDENTIFIER DBL_COLON IDENTIFIER
+    |                       IDENTIFIER DBL_COLON IDENTIFIER generic_demension_specifier
+    | unbound_type_name DOT IDENTIFIER DBL_COLON IDENTIFIER
+    | unbound_type_name DOT IDENTIFIER DBL_COLON IDENTIFIER generic_demension_specifier
+    ;
+
+generic_demension_specifier
+    : LESS        GREATER
+    | LESS commas GREATER
+    ;
+
+commas          /* not in specification */
+    :        COMMA
+    | commas COMMA
+    ;
+
+checked_expression
+    : CHECKED LPAREN expression RPAREN
+    ;
+
+unchecked_expression
+    : UNCHECKED LPAREN expression RPAREN
+    ;
+
+default_value_expression
+    : DEFAULT LPAREN type RPAREN
+    ;
+
+nameof_expression
+    : NAMEOF LPAREN named_entity RPAREN
+    ;
+
+named_entity
+    : simple_name
+    | named_entity_target DOT IDENTIFIER
+    | named_entity_target DOT IDENTIFIER type_argument_list
+    ;
+
+named_entity_target
+    : THIS
+    | BASE
+    | named_entity
+    | predefined_type
+    | qualified_alias_member
+    ;
+
+anonymous_method_expression
+    : DELEGATE                                       block
+    | DELEGATE explicit_anonymous_function_signature block
+    ;
+
+explicit_anonymous_function_signature
+    : LPAREN  RPAREN
+    | LPAREN explicit_anonymous_function_parameter_list RPAREN
+    ;
+
+explicit_anonymous_function_parameter_list
+    :                                                  explicit_anonymous_function_parameter
+    | explicit_anonymous_function_parameter_list COMMA explicit_anonymous_function_parameter
+    ;
+
+explicit_anonymous_function_parameter
+    :     type IDENTIFIER
+    | REF type IDENTIFIER
+    | OUT type IDENTIFIER
+    ;
+
+primary_no_array_creation_expression_unsafe
+    : pointer_member_access
+    | pointer_element_access
+    | sizeof_expression
+    ;
+
+pointer_member_access
+    : primary_expression MINUS_GREATER IDENTIFIER
+    ;
+
+pointer_element_access
+    : primary_no_array_creation_expression LBRACKET expression RBRACKET
+    ;
+
+sizeof_expression
+    : SIZEOF LPAREN unmanaged_type RPAREN
+    ;
+
+
+array_creation_expression
+    : NEW non_array_type LBRACKET expression_list RBRACKET
+    | NEW non_array_type LBRACKET expression_list RBRACKET                 array_initializer
+    | NEW non_array_type LBRACKET expression_list RBRACKET rank_specifiers
+    | NEW non_array_type LBRACKET expression_list RBRACKET rank_specifiers array_initializer
+    | NEW array_type                                                       array_initializer
+    | NEW rank_specifier                                                   array_initializer
+    ;
+
+array_initializer
+    : LBRACE                                 RBRACE
+    | LBRACE variable_initializer_list       RBRACE
+    | LBRACE variable_initializer_list COMMA RBRACE
+    ;
+
+variable_initializer_list
+    :                                 variable_initializer
+    | variable_initializer_list COMMA variable_initializer
+    ;
+
+variable_initializer
+    : expression
+    | array_initializer
+    ;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+type
+    : non_array_type
+    | array_type %prec production_end
+    ;
+
+non_array_type
+    : type_name
+    | simple_type
+    | nullable_type
+    | pointer_type
+    | OBJECT
+    | DYNAMIC
+    | STRING
+    ;
+
+type_name
+  : namespace_or_type_name
+  ;
+
+simple_type
+    : numeric_type
+    | BOOL
+    ;
+
+numeric_type
+    : integral_type
+    | floating_point_type
+    | DECIMAL
+    ;
+
+integral_type
+    : SBYTE
+    | BYTE
+    | SHORT
+    | USHORT
+    | INT
+    | UINT
+    | LONG
+    | ULONG
+    | CHAR
+    ;
+
+floating_point_type
+    : FLOAT
+    | DOUBLE
+    ;
+
+nullable_type
+    : type QUESTION
+    ;
+
+pointer_type
+    : unmanaged_type ASTERISK
+    | VOID           ASTERISK
+    ;
+
+unmanaged_type
+    : type
+    ;
+
+array_type
+    : non_array_type rank_specifiers
+    ;
+
+rank_specifiers
+    :                 rank_specifier
+    | rank_specifiers rank_specifier
+    ;
+
+rank_specifier
+    : LBRACKET                RBRACKET
+    | LBRACKET dim_separators RBRACKET
+    ;
+
+dim_separators
+    :                COMMA
+    | dim_separators COMMA
+    ;
+
+
+//namespace_name
+//    : namespace_or_type_name
+//    ;
+
+namespace_or_type_name
+    :                            IDENTIFIER
+    |                            IDENTIFIER type_argument_list
+    | namespace_or_type_name DOT IDENTIFIER
+    | namespace_or_type_name DOT IDENTIFIER type_argument_list
+    | qualified_alias_member
+    ;
+
+type_argument_list
+    : LESS type_arguments GREATER
+    ;
+
+type_arguments
+    :                      type
+    | type_arguments COMMA type
+    ;
+
+qualified_alias_member
+    : IDENTIFIER DBL_COLON IDENTIFIER
+    | IDENTIFIER DBL_COLON IDENTIFIER type_argument_list
+    ;
+
+
+
+
+
+
+/* MOCKS */
+expression
+    : non_assignment_expression
+    ;
+
+non_assignment_expression
+    : PROTECTED
+    ;
+
+block
+    : PRIVATE
+    ;
+
+
+
+
+%%
+
+/* EPILOGUE */
+void Metrics::CSParser::error( const location_type &l, const std::string &err_message )
+{
+    std::cerr << "Error: " << err_message << " at " << l << "\n";
+}
